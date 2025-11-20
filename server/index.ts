@@ -90,6 +90,6 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
   });*/
   server.listen(3000, 'localhost', () => {
-  console.log('Server running on http://localhost:5000');
+  console.log('Server running on http://localhost:3000');
 });
 })();
