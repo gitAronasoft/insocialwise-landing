@@ -125,7 +125,7 @@ export default function FeaturesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-6xl font-extrabold mb-6"
+            className="text-5xl md:text-6xl font-extrabold mb-6 mobile-heading"
           >
             <span className="bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
               Everything You Need to
@@ -195,7 +195,7 @@ export default function FeaturesSection() {
                       <feature.icon className="text-white w-6 h-6" />
                     </div>
                     <motion.h3 
-                      className="text-2xl font-bold text-gray-900 group-hover:bg-gradient-to-r group-hover:from-gray-900 group-hover:to-indigo-900 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-500"
+                      className="text-2xl font-bold text-gray-900 group-hover:bg-gradient-to-r group-hover:from-gray-900 group-hover:to-indigo-900 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-500 h3-mobile-heading"
                     >
                       {feature.title}
                     </motion.h3>
@@ -240,10 +240,10 @@ export default function FeaturesSection() {
           transition={{ delay: 0.5 }}
           className="mt-20 text-center"
         >
-          <div className="inline-flex items-center justify-center space-x-12 px-8 py-6 rounded-3xl bg-white/50 backdrop-blur-sm border border-white/50 shadow-lg">
+          <div className="inline-flex items-center justify-between  px-8 py-6 rounded-3xl bg-white/50 backdrop-blur-sm border border-white/50 shadow-lg custom-responsive mobile-width-100 w-full sm:w-full md:w-10/12 xl:w-6/12 2xl:w-5/12 mx-auto">
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="text-center"
+              className="text-center px-4"
             >
               <div className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">50K+</div>
               <div className="text-sm text-gray-600 font-medium">Active Users</div>
@@ -251,7 +251,7 @@ export default function FeaturesSection() {
             <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="text-center"
+              className="text-center px-4"
             >
               <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">2M+</div>
               <div className="text-sm text-gray-600 font-medium">Posts Scheduled</div>
@@ -259,7 +259,7 @@ export default function FeaturesSection() {
             <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="text-center"
+              className="text-center px-4"
             >
               <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">99.9%</div>
               <div className="text-sm text-gray-600 font-medium">Uptime</div>

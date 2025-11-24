@@ -130,7 +130,7 @@ export default function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-6xl font-extrabold mb-6"
+            className="text-5xl md:text-6xl font-extrabold mb-6 mobile-heading"
           >
             <span className="bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
             Get Full Access
@@ -255,20 +255,20 @@ export default function PricingSection() {
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.7 }}
-            className="inline-flex items-center justify-center space-x-8 mb-8 p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg"
+            className="inline-flex items-center justify-between mb-8 p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-l custom-responsive mobile-width-100 w-full sm:w-full md:w-12/12 xl:w-6/12 2xl:w-5/12 mx-auto "
           >
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 px-4">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-gray-700 font-medium">No credit card required</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 px-4">
               <div
                 className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"
                 style={{ animationDelay: "0.5s" }}
               ></div>
               <span className="text-gray-700 font-medium">Cancel anytime</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 px-4">
               <div
                 className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"
                 style={{ animationDelay: "1s" }}
@@ -281,7 +281,7 @@ export default function PricingSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="flex justify-center items-center space-x-6 text-gray-500"
+            className="flex justify-between gap-3 items-center text-gray-500 custom-responsive mx-auto mobile-width-100 w-full sm:w-full md:w-12/12 xl:w-4/12 2xl:w-5/12"
           >
             <span className="text-sm font-medium">Secured & Trusted by</span>
             <motion.div
@@ -291,13 +291,7 @@ export default function PricingSection() {
               <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
               <span className="text-indigo-600 font-semibold text-sm">Stripe</span>
             </motion.div>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg"
-            >
-              {/* <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-blue-600 font-semibold text-sm">Razorpay</span> */}
-            </motion.div>
+            
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg"
@@ -321,8 +315,10 @@ export default function PricingSection() {
                 <Zap className="w-5 h-5" />
               </motion.div>
               <span className="font-semibold">Limited Time Offer</span>
+           
               <span className="text-orange-600">•</span>
               <span className="text-sm">Spots filling up fast!</span>
+             
             </div>
           </motion.div>
         </motion.div>

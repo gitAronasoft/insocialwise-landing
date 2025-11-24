@@ -114,3 +114,27 @@
     }
   }
 }
+
+@media screen and (max-width: 580px) {
+  .custom-responsive {
+    flex-direction: column !important;
+  }
+  .mobile-width-100 {
+    width: 100% !important;
+  }
+  .custom-mobile-px {
+    padding: 0 10px !important;
+  }
+  .custom-font-mobile {
+    font-size: 14px !important;
+  }
+  .custom-badge {
+    font-size: 10px !important;
+  }
+  .mobile-heading {
+    font-size: 32px;
+  }
+  .h3-mobile-heading {
+    font-size: 20px;
+  }
+}

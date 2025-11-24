@@ -138,7 +138,7 @@ export default function PlatformIntegration() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-6xl font-extrabold mb-6"
+            className="text-5xl md:text-6xl font-extrabold mb-6 mobile-heading"
           >
             <span className="bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
               Connect All Your
@@ -213,7 +213,8 @@ export default function PlatformIntegration() {
           </div>
 
           {/* Platform cards in circular arrangement */}
-          <div className="relative h-[400px] w-full">
+          <div className="relative h-[400px] w-full border-blue-600 mx-auto flex flex-col items-center justify-center border">
+            
             {platforms.map((platform, index) => {
               const angle = (index * 360) / (platforms.length + additionalPlatforms.length);
               const radius = 180;
@@ -308,10 +309,10 @@ export default function PlatformIntegration() {
           style={{ marginTop: '100px' }}
         >
           {/* Integration stats */}
-          <div className="inline-flex items-center justify-center space-x-8 px-8 py-6 rounded-3xl bg-white/60 backdrop-blur-sm border border-white/50 shadow-lg mb-8">
+          <div className="inline-flex items-center justify-between px-8 py-6 rounded-3xl bg-white/60 backdrop-blur-sm border border-white/50 shadow-lg mb-8 custom-responsive mobile-width-100 w-full sm:w-full md:w-10/12 xl:w-6/12 2xl:w-5/12 mx-auto">
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="text-center"
+              className="text-center px-4"
             >
               <div className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">15+</div>
               <div className="text-sm text-gray-600 font-medium">Platforms</div>
@@ -319,7 +320,7 @@ export default function PlatformIntegration() {
             <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="text-center"
+              className="text-center px-4"
             >
               <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">1-Click</div>
               <div className="text-sm text-gray-600 font-medium">Setup</div>
@@ -327,7 +328,7 @@ export default function PlatformIntegration() {
             <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="text-center"
+              className="text-center px-4"
             >
               <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Real-time</div>
               <div className="text-sm text-gray-600 font-medium">Sync</div>

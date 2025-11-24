@@ -8,29 +8,12 @@ import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { 
-  Crown, 
-  Shield, 
-  CheckCircle2, 
-  CreditCard, 
-  ArrowLeft,
-  Star,
-  Zap,
-  Lock,
-  Globe,
-  Wallet, 
-  Users,
-  BarChart,
-  Headphones,
-  Cpu,
-  Gift 
-} from "lucide-react";
-
-
+import { Crown, Shield, CheckCircle2, CreditCard, ArrowLeft, Star, Zap, Lock, Globe, Wallet, Users, BarChart, Headphones, Cpu, Gift} from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 // Initialize Stripe outside of component to avoid recreating on every render
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
@@ -50,7 +33,7 @@ type CustomerForm = z.infer<typeof customerSchema>;
 // Stripe Checkout Form Component
 const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: {
   customerData: CustomerForm;
-  onSuccess: () => void;
+  onSuccess: (pm: string) => void;
   onError: (error: string) => void;
   clientSecret: string;
 }) => {
@@ -85,7 +68,18 @@ const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: 
       if (error) {
         onError(error.message || "Subscription payment failed");
       } else if (setupIntent && setupIntent.status === "succeeded") {
-        onSuccess();
+        const pm = setupIntent.payment_method;
+        if (!pm) {
+          onError("Stripe did not return a payment method. Please try again.");
+          return;
+        }
+        // pm can be a string (payment method id) or a PaymentMethod object; normalize to an ID string
+        const paymentMethodId = typeof pm === "string" ? pm : (pm.id ?? undefined);
+        if (!paymentMethodId) {
+          onError("Unable to determine payment method ID. Please try again.");
+          return;
+        }
+        onSuccess(paymentMethodId);
       } else {
         onError("Payment incomplete. Please try again.");
       }
@@ -331,6 +325,11 @@ export default function Checkout() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [showStripeForm, setShowStripeForm] = useState(false);
   const [showRazorpayForm, setShowRazorpayForm] = useState(false);
+  const [stripeCustomerId, setStripeCustomerId] = useState("");
+  const [userUUID, setUserUUID] = useState("");
+  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const [setupIntentPaymentMethod, setSetupIntentPaymentMethod] = useState<string | null>(null);
+  // const BACKEND_URL = `${import.meta.env.REACT_APP_BACKEND_URL}`;
   const { toast } = useToast();
 
   const form = useForm<CustomerForm>({
@@ -367,20 +366,22 @@ export default function Checkout() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('/api/payment/create-subscription', {
+      const response = await api("/payment/create-subscription", {
+      // const response = await fetch(`${BACKEND_URL}/api/payment/create-subscription`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerData: data,
           priceId: selectedPlan.id, // Use the dynamically selected priceId
-           trialDays: selectedPlan.trialDays, // pass trial info
+          trial_end: selectedPlan.trialDays, // pass trial info
         }),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        setClientSecret(result.clientSecret);
+      if (response.success) {
+        setStripeCustomerId(response.stripeCustomerId);
+        setUserUUID(response.user_uuid);
+        setClientSecret(response.clientSecret);
+        setSubscriptionId(response.subscriptionId);
         setShowStripeForm(true);
         toast({
           title: "Ready for Subscription",
@@ -389,7 +390,7 @@ export default function Checkout() {
       } else {
         toast({
           title: "Subscription Failed",
-          description: result.error || "Unable to create subscription.",
+          description: response.error || "Unable to create subscription.",
           variant: "destructive",
         });
       }
@@ -404,14 +405,52 @@ export default function Checkout() {
     }
   };
 
-  const handleStripeSuccess = () => {
-    toast({
-      title: "Payment Setup Complete",
-      description: "Your access has been secured successfully!",
-    });
-    setTimeout(() => {
-      window.location.href = `/success?priceId=${selectedPlan?.id}`;
-    }, 1500);
+  // const handleStripeSuccess = () => {
+  //   toast({
+  //     title: "Payment Setup Complete",
+  //     description: "Your access has been secured successfully!",
+  //   });
+  //   // setTimeout(() => {
+  //   //   window.location.href = `/success?priceId=${selectedPlan?.id}`;
+  //   // }, 1500);
+  // };
+
+  const handleStripeSuccess = async (payment_method: string) => {
+    try {
+      const result = await api("/payment/confirm", {
+        method: "POST",
+        body: JSON.stringify({
+          user_uuid: userUUID,
+          subscriptionId: subscriptionId,
+          // stripeCustomerId: stripeCustomerId,
+          // priceId: `${selectedPlan?.id}`,
+          // payment_method: payment_method
+        }),
+      });
+
+      if (result.success) {
+        toast({
+          title: "Subscription Activated",
+          description: "Redirecting to onboarding...",
+        });
+
+        setTimeout(() => {
+          window.location.href = `/success?priceId=${selectedPlan?.id}`;
+        }, 800);
+      } else {
+        toast({
+          title: "Subscription Error",
+          description: result.error || "Could not activate subscription.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Network Error",
+        description: "Please check your connection and try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStripeError = (error: string) => {
@@ -972,9 +1011,9 @@ const benefitsByPlan: Record<
                   <Separator />
 
                   {/* Payment Method Selection */}
-                  {/* <div>
+                  <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Choose Payment Method</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <motion.button
                         type="button"
                         whileHover={{ scale: 1.02 }}
@@ -993,7 +1032,7 @@ const benefitsByPlan: Record<
                         <p className="text-sm text-gray-600 mt-1">Credit/Debit Cards</p>
                       </motion.button>
 
-                      <motion.button
+                      {/* <motion.button
                         type="button"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -1009,9 +1048,9 @@ const benefitsByPlan: Record<
                           <span className="font-medium">Razorpay</span>
                         </div>
                         <p className="text-sm text-gray-600 mt-1">UPI, Cards, Net Banking</p>
-                      </motion.button>
+                      </motion.button> */}
                     </div>
-                  </div> */}
+                  </div>
 
                   {/* Stripe Card Fields */}
                   {selectedPayment === 'stripe' && showStripeForm && clientSecret && (
@@ -1042,7 +1081,9 @@ const benefitsByPlan: Record<
                     </div>
                   )} */}
 
-                  {!(selectedPayment === 'stripe' && showStripeForm && clientSecret) && !(selectedPayment === 'razorpay' && showRazorpayForm) && (
+                  {!(selectedPayment === 'stripe' && showStripeForm && clientSecret) 
+                    // && !(selectedPayment === 'razorpay' && showRazorpayForm) 
+                    && (
                     <>
                     {/* Security Note */}
                     <div className="bg-green-50 border border-green-200 rounded-xl p-4">

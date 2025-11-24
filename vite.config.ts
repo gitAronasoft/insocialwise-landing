@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import fs from 'fs'
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
@@ -29,9 +30,10 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
+    https: {
+      key: fs.readFileSync('./privkey.pem'),
+      cert: fs.readFileSync('./fullchain.pem'),
     },
+    port: 5173, // match old dashboard
   },
 });

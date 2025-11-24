@@ -130,7 +130,7 @@ export default function FAQSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-5xl lg:text-6xl font-bold mb-6"
+            className="text-5xl lg:text-6xl font-bold mb-6 mobile-heading"
           >
             <span className="text-gray-900">
               Got Questions?
@@ -221,7 +221,7 @@ export default function FAQSection() {
                   <CardContent className="relative p-0">
                     <Accordion type="single" collapsible>
                       <AccordionItem value={`item-${index}`} className="border-none">
-                        <AccordionTrigger className="px-8 py-6 hover:no-underline group/trigger [&[data-state=open]>div]:text-gray-900">
+                        <AccordionTrigger className="px-6 py-4 hover:no-underline group/trigger [&[data-state=open]>div]:text-gray-900">
                           <div className="flex items-center gap-4 w-full text-left">
                             <motion.div
                               whileHover={{ scale: 1.1, rotate: 5 }}

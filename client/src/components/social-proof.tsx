@@ -227,7 +227,7 @@ export default function SocialProof() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-5xl lg:text-6xl font-bold mb-6"
+            className="text-5xl lg:text-6xl font-bold mb-6 mobile-heading"
           >
             <span className="bg-gradient-to-r from-gray-900 via-indigo-900 to-violet-900 bg-clip-text text-transparent">
               Trusted by Ambitious
@@ -275,7 +275,7 @@ export default function SocialProof() {
           </div>
 
           {/* Carousel Container */}
-          <div className="overflow-hidden px-16">
+          <div className="overflow-hidden px-16 custom-mobile-px">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
@@ -283,7 +283,8 @@ export default function SocialProof() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ duration: 0.6, ease: "easeInOut" }}
-                className="grid md:grid-cols-3 gap-8"
+                // className="grid md:grid-cols-1 lg:grid-cols-3 gap-8"
+                className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8"
                 onMouseEnter={() => setIsAutoPlaying(false)}
                 onMouseLeave={() => setIsAutoPlaying(true)}
               >
@@ -310,7 +311,7 @@ export default function SocialProof() {
                       {/* Gradient overlay */}
                       <div className={`absolute inset-0 bg-gradient-to-br ${testimonial.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
                       
-                      <CardContent className="relative p-8">
+                      <CardContent className="relative p-5 mobile-width-100">
                         {/* Rating and metric */}
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex text-yellow-400">
@@ -336,15 +337,15 @@ export default function SocialProof() {
                               const IconComponent = testimonial.icon;
                               return <IconComponent className="w-4 h-4 text-white" />;
                             })()}
-                            <span className="text-xs font-bold text-white">{testimonial.metric}</span>
+                            <span className="text-xs font-bold text-white custom-badge">{testimonial.metric}</span>
                           </motion.div>
                         </div>
                         
                         <motion.p 
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ delay: 1 + index * 0.1 }}
-                          className="text-gray-700 mb-8 leading-relaxed text-lg font-medium"
+                          transition={{ delay: 1 + index * 0.1 }} 
+                          className="text-gray-700 mb-8 leading-relaxed text-lg font-medium custom-font-mobile"
                         >
                           "{testimonial.text}"
                         </motion.p>

@@ -35,8 +35,12 @@ export default function Footer() {
             viewport={{ once: true }}
           >
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center">
+              {/* <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center">
                 <Share className="text-white w-4 h-4" />
+              </div> */}
+              <div className="w-10 h-10">
+                <img src="./src/img/in-social-icon.png" alt="insocialwise-logo" className="w-full h-full object-contain"
+                />
               </div>
               <span className="text-xl font-bold">insocialwise</span>
             </div>

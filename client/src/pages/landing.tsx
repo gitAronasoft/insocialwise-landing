@@ -45,10 +45,11 @@ export default function Landing() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center">
+              {/* <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center">
                 <Share className="text-white w-4 h-4" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">insocialwise</span>
+              </div> */}
+              <div className="w-10 h-10"> <img src="./src/img/in-social-icon.png" alt="insocialwise-logo" /> </div>
+              <span className="text-xl font-bold text-gray-900">insocialwise  </span>
             </div>
             
             <div className="hidden md:flex items-center space-x-8">
@@ -220,7 +221,7 @@ export default function Landing() {
             onGetStarted={() => scrollToSection('registration')} 
           />
         )} */}
-          <HeroSection />
+        <HeroSection />
         <FeaturesSection />
         <PlatformIntegration />
         <PricingSection />
@@ -276,7 +277,7 @@ export default function Landing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 }}
-                className="text-5xl lg:text-6xl font-black mb-6 leading-tight"
+                className="text-5xl lg:text-6xl font-black mb-6 leading-tight mobile-heading"
               >
                 <span className="block text-white">Don't Miss</span>
                 <span className="block bg-gradient-to-r from-cyan-300 via-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -315,7 +316,7 @@ export default function Landing() {
                     size="lg"
                     className="relative bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-700 hover:from-cyan-400 hover:via-blue-500 hover:to-purple-600 text-white px-12 py-6 text-xl font-bold rounded-2xl shadow-xl transition-all duration-300 border-0"
                   >
-                    <span className="flex items-center gap-3">
+                    <span className="flex items-center gap-3 custom-font-mobile">
                       Claim Your Elite Access
                       <motion.div
                         animate={{ x: [0, 4, 0] }}
