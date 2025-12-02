@@ -11,7 +11,7 @@ interface HeroVariantCProps {
 
 export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCProps) {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-950 dark:to-indigo-950 pb-5">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-950 dark:to-indigo-950 pt-20 pb-10">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
@@ -40,8 +40,8 @@ export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCPr
         />
       </div>
 
-      <div className="container mx-auto px-4 py-10 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left side - Content */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -68,7 +68,7 @@ export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCPr
               transition={{ delay: 0.3, duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="space-y-4"
             >
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold leading-tight">
                 <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
                   Social Media
                 </span>
@@ -78,7 +78,7 @@ export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCPr
                 </span>
               </h1>
               
-              <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl">
+              <p className="text-base sm:text-lg lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl">
                 The AI-powered platform that transforms your social media chaos into 
                 <span className="font-semibold text-blue-600 dark:text-blue-400"> organized success</span>
               </p>
@@ -89,7 +89,7 @@ export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCPr
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="grid grid-cols-2 gap-4"
+              className="grid grid-cols-2 gap-2 sm:gap-4"
             >
               {[
                 { icon: Calendar, text: "Smart Scheduling" },
@@ -97,11 +97,11 @@ export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCPr
                 { icon: Users, text: "Team Collaboration" },
                 { icon: Shield, text: "Enterprise Security" }
               ].map((benefit, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg border border-white/20">
-                  <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
-                    <benefit.icon className="h-5 w-5 text-white" />
+                <div key={index} className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg border border-white/20">
+                  <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex-shrink-0">
+                    <benefit.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </div>
-                  <span className="font-medium text-gray-800 dark:text-gray-200">{benefit.text}</span>
+                  <span className="font-medium text-xs sm:text-sm text-gray-800 dark:text-gray-200">{benefit.text}</span>
                 </div>
               ))}
             </motion.div>

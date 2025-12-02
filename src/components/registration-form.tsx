@@ -161,19 +161,19 @@ export default function RegistrationForm() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="flex justify-center items-center space-x-8 mt-8 text-sm text-gray-600"
+              className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 mt-8 text-sm text-gray-600"
             >
               <div className="flex items-center space-x-2">
-                <Users className="w-5 h-5 text-indigo-500" />
-                <span>100 Free Spots</span>
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />
+                <span className="text-xs sm:text-sm">100 Free Spots</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                <span>$588 Value</span>
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
+                <span className="text-xs sm:text-sm">$588 Value</span>
               </div>
               <div className="flex items-center space-x-2">
-                <Zap className="w-5 h-5 text-green-500" />
-                <span>Instant Access</span>
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                <span className="text-xs sm:text-sm">Instant Access</span>
               </div>
             </motion.div>
           </motion.div>

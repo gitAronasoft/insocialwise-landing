@@ -242,29 +242,29 @@ export default function FeaturesSection() {
           transition={{ delay: 0.5 }}
           className="mt-20 text-center"
         >
-          <div className="inline-flex items-center justify-between  px-8 py-6 rounded-3xl bg-white/50 backdrop-blur-sm border border-white/50 shadow-lg custom-responsive mobile-width-100 w-full sm:w-full md:w-10/12 xl:w-6/12 2xl:w-5/12 mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-0 px-6 sm:px-8 py-6 rounded-3xl bg-white/50 backdrop-blur-sm border border-white/50 shadow-lg w-full sm:w-auto mx-auto">
             <motion.div 
               whileHover={{ scale: 1.05 }}
               className="text-center px-4"
             >
-              <div className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">50K+</div>
-              <div className="text-sm text-gray-600 font-medium">Active Users</div>
+              <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">50K+</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">Active Users</div>
             </motion.div>
-            <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
+            <div className="hidden sm:block w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
             <motion.div 
               whileHover={{ scale: 1.05 }}
               className="text-center px-4"
             >
-              <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">2M+</div>
-              <div className="text-sm text-gray-600 font-medium">Posts Scheduled</div>
+              <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">2M+</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">Posts Scheduled</div>
             </motion.div>
-            <div className="w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
+            <div className="hidden sm:block w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
             <motion.div 
               whileHover={{ scale: 1.05 }}
               className="text-center px-4"
             >
-              <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">99.9%</div>
-              <div className="text-sm text-gray-600 font-medium">Uptime</div>
+              <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">99.9%</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">Uptime</div>
             </motion.div>
           </div>
         </motion.div>

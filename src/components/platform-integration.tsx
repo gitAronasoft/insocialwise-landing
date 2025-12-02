@@ -11,6 +11,29 @@ import {
   ArrowRight,
   Globe
 } from "lucide-react";
+import { useState, useEffect } from "react";
+
+function useOrbitRadius() {
+  const [radius, setRadius] = useState(130);
+  
+  useEffect(() => {
+    const updateRadius = () => {
+      const width = window.innerWidth;
+      if (width >= 1536) setRadius(280);
+      else if (width >= 1280) setRadius(250);
+      else if (width >= 1024) setRadius(220);
+      else if (width >= 768) setRadius(190);
+      else if (width >= 640) setRadius(160);
+      else setRadius(130);
+    };
+    
+    updateRadius();
+    window.addEventListener('resize', updateRadius);
+    return () => window.removeEventListener('resize', updateRadius);
+  }, []);
+  
+  return radius;
+}
 
 const platforms = [
   { 
@@ -80,6 +103,8 @@ const additionalPlatforms = [
 ];
 
 export default function PlatformIntegration() {
+  const orbitRadius = useOrbitRadius();
+  
   return (
     <section className="py-24 relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-indigo-50/20">
       {/* Animated background elements */}
@@ -162,66 +187,65 @@ export default function PlatformIntegration() {
         </motion.div>
         
         {/* Modern platform showcase with connections */}
-        <div className="relative">
-          {/* Central hub visualization */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-            className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 bg-dark"
-          >
-            <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/25">
-              <Globe className="w-12 h-12 text-white" />
-            </div>
-            {/* Pulsing rings */}
+        <div className="relative w-full flex items-center justify-center">
+          {/* Platform cards in circular arrangement - responsive and centered */}
+          <div className="relative h-[380px] sm:h-[420px] md:h-[480px] lg:h-[550px] xl:h-[600px] w-full max-w-[380px] sm:max-w-[420px] md:max-w-[480px] lg:max-w-[550px] xl:max-w-[600px] mx-auto">
+            
+            {/* Central hub visualization */}
             <motion.div 
-              animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute inset-0 border-2 border-indigo-400 rounded-3xl"
-            />
-            <motion.div 
-              animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0, 0.2] }}
-              transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-              className="absolute inset-0 border-2 border-purple-400 rounded-3xl"
-            />
-          </motion.div>
-
-          {/* Floating particles animation */}
-          <div className="absolute inset-0 pointer-events-none z-5">
-            {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-2 h-2 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full opacity-60"
-                style={{
-                  left: `${20 + (i * 15)}%`,
-                  top: `${30 + (i % 3) * 20}%`,
-                }}
-                animate={{
-                  y: [0, -20, 0],
-                  x: [0, 10, 0],
-                  opacity: [0.3, 0.8, 0.3],
-                }}
-                transition={{
-                  duration: 4 + i,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: i * 0.5,
-                }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20"
+            >
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/25">
+                <Globe className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+              </div>
+              {/* Pulsing rings */}
+              <motion.div 
+                animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="absolute inset-0 border-2 border-indigo-400 rounded-3xl"
               />
-            ))}
-          </div>
+              <motion.div 
+                animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0, 0.2] }}
+                transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+                className="absolute inset-0 border-2 border-purple-400 rounded-3xl"
+              />
+            </motion.div>
 
-          {/* Platform cards in circular arrangement */}
-          <div className="relative h-[450px] w-full max-w-3xl mx-auto flex items-center justify-center">
+            {/* Floating particles animation */}
+            <div className="absolute inset-0 pointer-events-none z-5">
+              {[...Array(6)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-2 h-2 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full opacity-60"
+                  style={{
+                    left: `${20 + (i * 15)}%`,
+                    top: `${30 + (i % 3) * 20}%`,
+                  }}
+                  animate={{
+                    y: [0, -20, 0],
+                    x: [0, 10, 0],
+                    opacity: [0.3, 0.8, 0.3],
+                  }}
+                  transition={{
+                    duration: 4 + i,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * 0.5,
+                  }}
+                />
+              ))}
+            </div>
             
             {/* All platforms combined for proper circular distribution */}
             {[...platforms, ...additionalPlatforms].map((platform, index) => {
               const totalPlatforms = platforms.length + additionalPlatforms.length;
               const angle = (index * 360) / totalPlatforms - 90; // Start from top
-              const radius = 160; // Distance from center
-              const x = Math.cos((angle * Math.PI) / 180) * radius;
-              const y = Math.sin((angle * Math.PI) / 180) * radius;
+              const x = Math.cos((angle * Math.PI) / 180);
+              const y = Math.sin((angle * Math.PI) / 180);
               
               const hasIcon = 'icon' in platform;
               
@@ -242,13 +266,13 @@ export default function PlatformIntegration() {
                   }}
                   className="absolute"
                   style={{ 
-                    left: `calc(50% + ${x}px)`, 
-                    top: `calc(50% + ${y}px)`,
+                    left: `calc(50% + ${x * orbitRadius}px)`,
+                    top: `calc(50% + ${y * orbitRadius}px)`,
                     transform: 'translate(-50%, -50%)'
                   }}
                 >
                   <Card className={`group relative overflow-visible bg-gradient-to-br ${platform.bgGradient} ${platform.hoverGradient} border border-white/60 shadow-lg ${platform.shadowColor} hover:shadow-xl transition-all duration-300 rounded-2xl backdrop-blur-sm`}>
-                    <CardContent className="p-4 flex flex-col items-center justify-center relative z-10">
+                    <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center relative z-10">
                       {hasIcon ? (
                         <motion.div
                           whileHover={{ rotate: 5 }}
@@ -256,11 +280,11 @@ export default function PlatformIntegration() {
                         >
                           {(() => {
                             const IconComponent = (platform as typeof platforms[0]).icon;
-                            return <IconComponent className={`w-7 h-7 ${platform.color} transition-all duration-300`} />;
+                            return <IconComponent className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 ${platform.color} transition-all duration-300`} />;
                           })()}
                         </motion.div>
                       ) : (
-                        <span className={`text-sm font-bold ${platform.color} transition-all duration-300`}>
+                        <span className={`text-xs sm:text-sm font-bold ${platform.color} transition-all duration-300`}>
                           {platform.name}
                         </span>
                       )}
@@ -282,29 +306,29 @@ export default function PlatformIntegration() {
           style={{ marginTop: '100px' }}
         >
           {/* Integration stats */}
-          <div className="inline-flex items-center justify-between px-8 py-6 rounded-3xl bg-white/60 backdrop-blur-sm border border-white/50 shadow-lg mb-8 custom-responsive mobile-width-100 w-full sm:w-full md:w-10/12 xl:w-6/12 2xl:w-5/12 mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-0 px-6 sm:px-8 py-6 rounded-3xl bg-white/60 backdrop-blur-sm border border-white/50 shadow-lg mb-8 w-full sm:w-auto mx-auto">
             <motion.div 
               whileHover={{ scale: 1.05 }}
               className="text-center px-4"
             >
-              <div className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">15+</div>
-              <div className="text-sm text-gray-600 font-medium">Platforms</div>
+              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">15+</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">Platforms</div>
             </motion.div>
-            <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
+            <div className="hidden sm:block w-px h-8 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
             <motion.div 
               whileHover={{ scale: 1.05 }}
               className="text-center px-4"
             >
-              <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">1-Click</div>
-              <div className="text-sm text-gray-600 font-medium">Setup</div>
+              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">1-Click</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">Setup</div>
             </motion.div>
-            <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
+            <div className="hidden sm:block w-px h-8 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
             <motion.div 
               whileHover={{ scale: 1.05 }}
               className="text-center px-4"
             >
-              <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Real-time</div>
-              <div className="text-sm text-gray-600 font-medium">Sync</div>
+              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">Real-time</div>
+              <div className="text-xs sm:text-sm text-gray-600 font-medium">Sync</div>
             </motion.div>
           </div>
 

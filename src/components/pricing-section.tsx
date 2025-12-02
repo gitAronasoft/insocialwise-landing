@@ -256,25 +256,25 @@ export default function PricingSection() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.7, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="inline-flex items-center justify-between mb-8 p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-l custom-responsive mobile-width-100 w-full sm:w-full md:w-12/12 xl:w-6/12 2xl:w-5/12 mx-auto "
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-8 p-4 sm:p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg w-full sm:w-auto mx-auto"
           >
-            <div className="flex items-center space-x-2 px-4">
+            <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-gray-700 font-medium">No credit card required</span>
+              <span className="text-gray-700 font-medium text-sm sm:text-base">No credit card required</span>
             </div>
-            <div className="flex items-center space-x-2 px-4">
+            <div className="flex items-center space-x-2">
               <div
                 className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"
                 style={{ animationDelay: "0.5s" }}
               ></div>
-              <span className="text-gray-700 font-medium">Cancel anytime</span>
+              <span className="text-gray-700 font-medium text-sm sm:text-base">Cancel anytime</span>
             </div>
-            <div className="flex items-center space-x-2 px-4">
+            <div className="flex items-center space-x-2">
               <div
                 className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"
                 style={{ animationDelay: "1s" }}
               ></div>
-              <span className="text-gray-700 font-medium">Instant access</span>
+              <span className="text-gray-700 font-medium text-sm sm:text-base">Instant access</span>
             </div>
           </motion.div>
 
@@ -283,7 +283,7 @@ export default function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.8, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="flex justify-between gap-3 items-center text-gray-500 custom-responsive mx-auto mobile-width-100 w-full sm:w-full md:w-8/12 xl:w-4/12 2xl:w-5/12"
+            className="flex flex-wrap justify-center gap-3 items-center text-gray-500 mx-auto"
           >
             <span className="text-sm font-medium">Secured & Trusted by</span>
             <motion.div
