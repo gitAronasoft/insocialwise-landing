@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Globe
 } from "lucide-react";
+import { SiTiktok, SiPinterest, SiSnapchat } from "react-icons/si";
 import { useState, useEffect } from "react";
 
 function useOrbitRadius() {
@@ -80,6 +81,7 @@ const platforms = [
 
 const additionalPlatforms = [
   { 
+    icon: SiTiktok,
     name: "TikTok", 
     color: "text-gray-800", 
     bgGradient: "from-gray-50 to-slate-50",
@@ -87,6 +89,7 @@ const additionalPlatforms = [
     shadowColor: "shadow-gray-200/50"
   },
   { 
+    icon: SiPinterest,
     name: "Pinterest", 
     color: "text-red-500", 
     bgGradient: "from-red-50 to-pink-50",
@@ -94,6 +97,7 @@ const additionalPlatforms = [
     shadowColor: "shadow-red-200/50"
   },
   { 
+    icon: SiSnapchat,
     name: "Snapchat", 
     color: "text-yellow-500", 
     bgGradient: "from-yellow-50 to-amber-50",
@@ -246,8 +250,7 @@ export default function PlatformIntegration() {
               const angle = (index * 360) / totalPlatforms - 90; // Start from top
               const x = Math.cos((angle * Math.PI) / 180);
               const y = Math.sin((angle * Math.PI) / 180);
-              
-              const hasIcon = 'icon' in platform;
+              const IconComponent = platform.icon;
               
               return (
                 <motion.div
@@ -273,21 +276,12 @@ export default function PlatformIntegration() {
                 >
                   <Card className={`group relative overflow-visible bg-gradient-to-br ${platform.bgGradient} ${platform.hoverGradient} border border-white/60 shadow-lg ${platform.shadowColor} hover:shadow-xl transition-all duration-300 rounded-2xl backdrop-blur-sm`}>
                     <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center relative z-10">
-                      {hasIcon ? (
-                        <motion.div
-                          whileHover={{ rotate: 5 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          {(() => {
-                            const IconComponent = (platform as typeof platforms[0]).icon;
-                            return <IconComponent className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 ${platform.color} transition-all duration-300`} />;
-                          })()}
-                        </motion.div>
-                      ) : (
-                        <span className={`text-xs sm:text-sm font-bold ${platform.color} transition-all duration-300`}>
-                          {platform.name}
-                        </span>
-                      )}
+                      <motion.div
+                        whileHover={{ rotate: 5 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <IconComponent className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 ${platform.color} transition-all duration-300`} />
+                      </motion.div>
                     </CardContent>
                   </Card>
                 </motion.div>

@@ -23,7 +23,7 @@ export default function Success() {
   const queryParams = new URLSearchParams(window.location.search);
   const selectedPriceId = queryParams.get("priceId");
   const [isAnimating, setIsAnimating] = useState(true);
-  const APPURL = import.meta.env.VITE_APP_INSOCIALWISE;
+  const APPURL = import.meta.env.VITE_APP_URL;
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAnimating(false), 2000);
@@ -94,7 +94,14 @@ const features = plan?.features || [
 // console.log(totalValue);
 
 function handleRedirect() {
-  window.open(`${APPURL}/onboarding?token=${queryParams.get("token")}`);
+  const token = queryParams.get("token");
+  if (APPURL && token) {
+    window.open(`${APPURL}/onboarding?token=${token}`, '_blank');
+  } else if (APPURL) {
+    window.open(`${APPURL}/onboarding`, '_blank');
+  } else {
+    console.warn("App URL not configured. Please set VITE_API_URL environment variable.");
+  }
 }
 
 const monthlyPrice = plan?.price 
@@ -305,8 +312,9 @@ const totalValue = monthlySavings * totalMonths;
             >
               <Button onClick={handleRedirect}
                 className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300"
+                data-testid="button-access-dashboard"
               >
-                <Mail className="w-5 h-5 mr-2" />
+                <Zap className="w-5 h-5 mr-2" />
                 Access Your Dashboard
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>

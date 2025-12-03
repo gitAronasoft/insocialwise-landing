@@ -114,7 +114,7 @@ export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCPr
               className="space-y-4"
             >
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/checkout?priceId=price_1SB8eaHpVJPrOqLk3gNsUxe6">
+                <Link href="/checkout?priceId=price_1SaBTZHpVJPrOqLkq7OMZXQ5">
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg rounded-full shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"

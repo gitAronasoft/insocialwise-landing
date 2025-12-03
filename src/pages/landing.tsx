@@ -10,6 +10,7 @@ import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import logoImage from "@/img/in-social-icon.png";
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,7 +29,7 @@ export default function Landing() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10"> <img src="./src/img/in-social-icon.png" alt="insocialwise-logo" /> </div>
+              <div className="w-10 h-10"> <img src={logoImage} alt="insocialwise-logo" /> </div>
               <span className="text-xl font-bold text-gray-900">insocialwise</span>
             </div>
             

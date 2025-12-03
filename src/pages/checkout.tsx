@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,15 +8,47 @@ import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Crown, Shield, CheckCircle2, CreditCard, ArrowLeft, Star, Zap, Lock, Globe, Wallet, Users, BarChart, Headphones, Cpu, Gift} from "lucide-react";
+import {
+  Crown,
+  Shield,
+  CheckCircle2,
+  CreditCard,
+  ArrowLeft,
+  Star,
+  Zap,
+  Lock,
+  Globe,
+  Wallet,
+  Users,
+  BarChart,
+  Headphones,
+  Cpu,
+  Gift,
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
+import {
+  useStripe,
+  Elements,
+  PaymentElement,
+  useElements,
+} from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 
+const formatPhoneNumber = (value: string): string => {
+  const phoneNumber = value.replace(/\D/g, "");
+  const phoneNumberLength = phoneNumber.length;
+
+  if (phoneNumberLength < 4) return phoneNumber;
+  if (phoneNumberLength < 7) {
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
+  }
+  return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
+};
+
 // Initialize Stripe outside of component to avoid recreating on every render
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
   : null;
 
@@ -25,13 +57,21 @@ const customerSchema = z.object({
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  password: z.string().min(6, "Password must be at least 8 characters with letters and numbers").max(100),
+  password: z
+    .string()
+    .min(6, "Password must be at least 8 characters with letters and numbers")
+    .max(100),
 });
 
 type CustomerForm = z.infer<typeof customerSchema>;
 
 // Stripe Checkout Form Component
-const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: {
+const StripeCheckoutForm = ({
+  customerData,
+  onSuccess,
+  onError,
+  clientSecret,
+}: {
   customerData: CustomerForm;
   onSuccess: (pm: string) => void;
   onError: (error: string) => void;
@@ -62,20 +102,21 @@ const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: 
             },
           },
         },
-        redirect: 'if_required',
+        redirect: "if_required",
       });
-      
+
       if (error) {
         onError(error.message || "Subscription payment failed");
       } else if (setupIntent && setupIntent.status === "succeeded") {
         const pm = setupIntent.payment_method;
-        console.log("Payment method:",pm);
+        console.log("Payment method:", pm);
         if (!pm) {
           onError("Stripe did not return a payment method. Please try again.");
           return;
         }
         // pm can be a string (payment method id) or a PaymentMethod object; normalize to an ID string
-        const paymentMethodId = typeof pm === "string" ? pm : (pm.id ?? undefined);
+        const paymentMethodId =
+          typeof pm === "string" ? pm : (pm.id ?? undefined);
         if (!paymentMethodId) {
           onError("Unable to determine payment method ID. Please try again.");
           return;
@@ -84,7 +125,6 @@ const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: 
       } else {
         onError("Payment incomplete. Please try again.");
       }
-
     } catch (err) {
       onError(err instanceof Error ? err.message : "Payment failed");
     } finally {
@@ -98,20 +138,20 @@ const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: 
         <Label className="text-sm font-medium text-gray-700 mb-3 block">
           Card Details
         </Label>
-        <PaymentElement 
+        <PaymentElement
           options={{
-            layout: 'tabs',
+            layout: "tabs",
             defaultValues: {
               billingDetails: {
                 name: `${customerData.firstName} ${customerData.lastName}`,
                 email: customerData.email,
                 phone: customerData.phone,
-              }
-            }
+              },
+            },
           }}
         />
       </div>
-      
+
       <Button
         type="button"
         onClick={handleCardSubmit}
@@ -169,11 +209,11 @@ const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: 
 //       const response = await fetch('/api/payment/razorpay/create-order', {
 //         method: 'POST',
 //         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ 
-//           customerData, 
+//         body: JSON.stringify({
+//           customerData,
 //           priceId: selectedPlan.id,
 //           amount: selectedPlan.price === 'Custom' ? 0 : parseInt(selectedPlan.price.replace('$', '')) * 100, // Convert to paise
-//           currency: 'INR' 
+//           currency: 'INR'
 //         })
 //       });
 
@@ -259,7 +299,7 @@ const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: 
 //             <p className="text-sm text-gray-600">Secure payment with UPI, Cards, Net Banking & more</p>
 //           </div>
 //         </div>
-        
+
 //         <div className="space-y-3 text-sm text-gray-600">
 //           <div className="flex items-center space-x-2">
 //             <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -275,7 +315,7 @@ const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: 
 //           </div>
 //         </div>
 //       </div>
-      
+
 //       <Button
 //         type="button"
 //         onClick={handleRazorpayPayment}
@@ -308,10 +348,34 @@ const StripeCheckoutForm = ({ customerData, onSuccess, onError, clientSecret }: 
 
 const plans = [
   // Corrected plans based on your PricingSection.jsx
-  { id: "price_1SB8eaHpVJPrOqLk3gNsUxe6", name: "Free Trial", price: "$0", sub: "/month", trialDays: 30 },
-  { id: "price_1SB8fMHpVJPrOqLkuXOqCxDa", name: "Standard", price: "$45", sub: "/month", trialDays: 30 },
-  { id: "price_1SB8gBHpVJPrOqLkYOKjHXfT", name: "Premium", price: "$99", sub: "/month", trialDays: 30},
-  { id: "price_1SASUjHpVJPrOqLkHPAJjoNB", name: "Enterprise", price: "Custom", sub: "Tailored", trialDays: 0 },
+  {
+    id: "price_1SaBTZHpVJPrOqLkq7OMZXQ5",
+    name: "Free Trial",
+    price: "$10",
+    sub: "/day",
+    trialDays: 1,
+  },
+  {
+    id: "price_1SB8fMHpVJPrOqLkuXOqCxDa",
+    name: "Standard",
+    price: "$45",
+    sub: "/month",
+    trialDays: 30,
+  },
+  {
+    id: "price_1SB8gBHpVJPrOqLkYOKjHXfT",
+    name: "Premium",
+    price: "$99",
+    sub: "/month",
+    trialDays: 30,
+  },
+  {
+    id: "price_1SASUjHpVJPrOqLkHPAJjoNB",
+    name: "Enterprise",
+    price: "Custom",
+    sub: "Tailored",
+    trialDays: 0,
+  },
 ];
 
 export default function Checkout() {
@@ -320,7 +384,9 @@ export default function Checkout() {
   const selectedPriceId = queryParams.get("priceId");
 
   // const [selectedPayment, setSelectedPayment] = useState<'stripe' | 'razorpay' | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<'stripe' | null>('stripe');
+  const [selectedPayment, setSelectedPayment] = useState<"stripe" | null>(
+    "stripe",
+  );
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -329,7 +395,9 @@ export default function Checkout() {
   const [stripeCustomerId, setStripeCustomerId] = useState("");
   const [userUUID, setUserUUID] = useState("");
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
-  const [setupIntentPaymentMethod, setSetupIntentPaymentMethod] = useState<string | null>(null);
+  const [setupIntentPaymentMethod, setSetupIntentPaymentMethod] = useState<
+    string | null
+  >(null);
   const [showPassword, setShowPassword] = useState(false);
 
   // const BACKEND_URL = `${import.meta.env.REACT_APP_BACKEND_URL}`;
@@ -346,7 +414,7 @@ export default function Checkout() {
     },
   });
 
-  const selectedPlan = plans.find(plan => plan.id === selectedPriceId);
+  const selectedPlan = plans.find((plan) => plan.id === selectedPriceId);
 
   // Scroll to top when page loads
   useEffect(() => {
@@ -356,12 +424,13 @@ export default function Checkout() {
   useEffect(() => {
     if (!selectedPlan) {
       toast({
-        title: "Invalid Plan",
-        description: "The selected plan is not valid. Redirecting...",
+        title: "Plan Not Found",
+        description:
+          "The selected plan is no longer available. Taking you back to view our current plans.",
         variant: "destructive",
       });
       setTimeout(() => {
-        setLocation('/');
+        setLocation("/");
       }, 2000);
     }
   }, [selectedPlan, setLocation, toast]);
@@ -376,9 +445,9 @@ export default function Checkout() {
 
     try {
       const response = await api("/payment/create-subscription", {
-      // const response = await fetch(`${BACKEND_URL}/api/payment/create-subscription`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // const response = await fetch(`${BACKEND_URL}/api/payment/create-subscription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerData: data,
           priceId: selectedPlan.id, // Use the dynamically selected priceId
@@ -393,20 +462,24 @@ export default function Checkout() {
         setSubscriptionId(response.subscriptionId);
         setShowStripeForm(true);
         toast({
-          title: "Ready for Subscription",
-          description: "Please enter your card details to start your subscription.",
+          title: "Account Created Successfully",
+          description:
+            "Please complete your payment details to activate your subscription.",
         });
       } else {
         toast({
-          title: "Subscription Failed",
-          description: response.error || "Unable to create subscription.",
+          title: "Unable to Process Request",
+          description:
+            response.error ||
+            "We couldn't create your subscription. Please try again or contact support.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Network Error",
-        description: "Please check your connection and try again.",
+        title: "Connection Issue",
+        description:
+          "Unable to reach our servers. Please check your internet connection and try again.",
         variant: "destructive",
       });
     } finally {
@@ -439,8 +512,9 @@ export default function Checkout() {
 
       if (result.success) {
         toast({
-          title: "Subscription Activated",
-          description: "Redirecting to onboarding...",
+          title: "Payment Successful",
+          description:
+            "Your subscription is now active. Setting up your dashboard...",
         });
 
         setTimeout(() => {
@@ -448,15 +522,18 @@ export default function Checkout() {
         }, 800);
       } else {
         toast({
-          title: "Subscription Error",
-          description: result.error || "Could not activate subscription.",
+          title: "Activation Failed",
+          description:
+            result.error ||
+            "We couldn't activate your subscription. Please contact support if this persists.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Network Error",
-        description: "Please check your connection and try again.",
+        title: "Connection Issue",
+        description:
+          "Unable to complete the activation. Please check your connection and try again.",
         variant: "destructive",
       });
     }
@@ -464,8 +541,8 @@ export default function Checkout() {
 
   const handleStripeError = (error: string) => {
     toast({
-      title: "Payment Failed",
-      description: error,
+      title: "Payment Could Not Be Processed",
+      description: error || "Please verify your card details and try again.",
       variant: "destructive",
     });
   };
@@ -473,13 +550,12 @@ export default function Checkout() {
   const handlePayment = async (data: CustomerForm) => {
     if (!selectedPayment) {
       toast({
-        title: "No Payment Method Selected",
-        description: "Please select a payment method to proceed.",
+        title: "Payment Method Required",
+        description: "Please select how you'd like to pay before continuing.",
         variant: "destructive",
       });
       return;
     }
-    
 
     // if (selectedPayment === 'stripe') {
     //   await handleStripeSetup(data);
@@ -488,7 +564,6 @@ export default function Checkout() {
     // }
 
     await handleStripeSetup(data);
-
   };
 
   // const handleRazorpaySuccess = () => {
@@ -538,290 +613,295 @@ export default function Checkout() {
   //   },
   // ];
 
-//   const benefitsByPlan: Record<string, { icon: JSX.Element; title: string; description: string }[]> = {
-//   "price_1SB8eaHpVJPrOqLk3gNsUxe6": [ // Free Trial
-//     {
-//       icon: <Zap className="w-6 h-6 text-indigo-500" />,
-//       title: "Basic Access",
-//       description: "Try the essentials of our platform risk-free for 1 day."
-//     },
-//     {
-//       icon: <Globe className="w-6 h-6 text-green-500" />,
-//       title: "Multi-Platform Posting",
-//       description: "Publish to all major social platforms."
-//     }
-//   ],
-//   "price_1SB8fMHpVJPrOqLkuXOqCxDa": [ // Standard
-//     {
-//       icon: <Zap className="w-6 h-6 text-indigo-500" />,
-//       title: "AI Content Suggestions",
-//       description: "Smart AI to help you plan and schedule posts."
-//     },
-//     {
-//       icon: <Star className="w-6 h-6 text-purple-500" />,
-//       title: "Analytics Dashboard",
-//       description: "Track engagement and optimize strategies."
-//     }
-//   ],
-//   "price_1SB8gBHpVJPrOqLkYOKjHXfT": [ // Premium
-//     {
-//       icon: <Crown className="w-6 h-6 text-yellow-500" />,
-//       title: "Full Suite",
-//       description: "Unlock our entire social management toolkit."
-//     },
-//     {
-//       icon: <Shield className="w-6 h-6 text-blue-500" />,
-//       title: "Priority Support",
-//       description: "Dedicated support and 1-on-1 onboarding."
-//     },
-//     {
-//       icon: <Star className="w-6 h-6 text-purple-500" />,
-//       title: "Advanced Insights",
-//       description: "Deep dive reports and recommendations."
-//     }
-//   ],
-//   "price_1SASUjHpVJPrOqLkHPAJjoNB": [ // Enterprise
-//     {
-//       icon: <Crown className="w-6 h-6 text-yellow-500" />,
-//       title: "Custom Solutions",
-//       description: "Tailored features designed for your business needs."
-//     },
-//     {
-//       icon: <Shield className="w-6 h-6 text-blue-500" />,
-//       title: "Dedicated Manager",
-//       description: "Personal account manager for ongoing support."
-//     }
-//   ],
-// };
-// const benefitsByPlan: Record<
-//   string,
-//   { icon: JSX.Element; title: string; description: string }[]
-// > = {
-//   "price_1SB8eaHpVJPrOqLk3gNsUxe6": [
-//     {
-//       icon: <Zap className="w-6 h-6 text-indigo-500" />,
-//       title: "Unlimited Accounts",
-//       description: "Connect all your social profiles without restrictions.",
-//     },
-//     {
-//       icon: <BarChart className="w-6 h-6 text-green-500" />,
-//       title: "Analytics & Reporting",
-//       description: "Track performance with basic insights and metrics.",
-//     },
-//     {
-//       icon: <Cpu className="w-6 h-6 text-pink-500" />,
-//       title: "AI Post Optimization",
-//       description: "Leverage AI to optimize your post timings and reach.",
-//     },
-//   ],
+  //   const benefitsByPlan: Record<string, { icon: JSX.Element; title: string; description: string }[]> = {
+  //   "price_1SB8eaHpVJPrOqLk3gNsUxe6": [ // Free Trial
+  //     {
+  //       icon: <Zap className="w-6 h-6 text-indigo-500" />,
+  //       title: "Basic Access",
+  //       description: "Try the essentials of our platform risk-free for 1 day."
+  //     },
+  //     {
+  //       icon: <Globe className="w-6 h-6 text-green-500" />,
+  //       title: "Multi-Platform Posting",
+  //       description: "Publish to all major social platforms."
+  //     }
+  //   ],
+  //   "price_1SB8fMHpVJPrOqLkuXOqCxDa": [ // Standard
+  //     {
+  //       icon: <Zap className="w-6 h-6 text-indigo-500" />,
+  //       title: "AI Content Suggestions",
+  //       description: "Smart AI to help you plan and schedule posts."
+  //     },
+  //     {
+  //       icon: <Star className="w-6 h-6 text-purple-500" />,
+  //       title: "Analytics Dashboard",
+  //       description: "Track engagement and optimize strategies."
+  //     }
+  //   ],
+  //   "price_1SB8gBHpVJPrOqLkYOKjHXfT": [ // Premium
+  //     {
+  //       icon: <Crown className="w-6 h-6 text-yellow-500" />,
+  //       title: "Full Suite",
+  //       description: "Unlock our entire social management toolkit."
+  //     },
+  //     {
+  //       icon: <Shield className="w-6 h-6 text-blue-500" />,
+  //       title: "Priority Support",
+  //       description: "Dedicated support and 1-on-1 onboarding."
+  //     },
+  //     {
+  //       icon: <Star className="w-6 h-6 text-purple-500" />,
+  //       title: "Advanced Insights",
+  //       description: "Deep dive reports and recommendations."
+  //     }
+  //   ],
+  //   "price_1SASUjHpVJPrOqLkHPAJjoNB": [ // Enterprise
+  //     {
+  //       icon: <Crown className="w-6 h-6 text-yellow-500" />,
+  //       title: "Custom Solutions",
+  //       description: "Tailored features designed for your business needs."
+  //     },
+  //     {
+  //       icon: <Shield className="w-6 h-6 text-blue-500" />,
+  //       title: "Dedicated Manager",
+  //       description: "Personal account manager for ongoing support."
+  //     }
+  //   ],
+  // };
+  // const benefitsByPlan: Record<
+  //   string,
+  //   { icon: JSX.Element; title: string; description: string }[]
+  // > = {
+  //   "price_1SB8eaHpVJPrOqLk3gNsUxe6": [
+  //     {
+  //       icon: <Zap className="w-6 h-6 text-indigo-500" />,
+  //       title: "Unlimited Accounts",
+  //       description: "Connect all your social profiles without restrictions.",
+  //     },
+  //     {
+  //       icon: <BarChart className="w-6 h-6 text-green-500" />,
+  //       title: "Analytics & Reporting",
+  //       description: "Track performance with basic insights and metrics.",
+  //     },
+  //     {
+  //       icon: <Cpu className="w-6 h-6 text-pink-500" />,
+  //       title: "AI Post Optimization",
+  //       description: "Leverage AI to optimize your post timings and reach.",
+  //     },
+  //   ],
 
-//   "price_1SB8fMHpVJPrOqLkuXOqCxDa": [
-//     {
-//       icon: <Star className="w-6 h-6 text-purple-500" />,
-//       title: "Everything in Trial",
-//       description: "Includes all features of the Free Trial plan.",
-//     },
-//     {
-//       icon: <Globe className="w-6 h-6 text-green-500" />,
-//       title: "Custom Integrations",
-//       description: "Seamlessly connect with your existing tools and workflows.",
-//     },
-//     {
-//       icon: <Users className="w-6 h-6 text-blue-500" />,
-//       title: "5 Team Seats",
-//       description: "Collaborate efficiently with your teammates.",
-//     },
-//     {
-//       icon: <Headphones className="w-6 h-6 text-indigo-500" />,
-//       title: "Priority Email Support",
-//       description: "Faster response times through email assistance.",
-//     },
-//   ],
+  //   "price_1SB8fMHpVJPrOqLkuXOqCxDa": [
+  //     {
+  //       icon: <Star className="w-6 h-6 text-purple-500" />,
+  //       title: "Everything in Trial",
+  //       description: "Includes all features of the Free Trial plan.",
+  //     },
+  //     {
+  //       icon: <Globe className="w-6 h-6 text-green-500" />,
+  //       title: "Custom Integrations",
+  //       description: "Seamlessly connect with your existing tools and workflows.",
+  //     },
+  //     {
+  //       icon: <Users className="w-6 h-6 text-blue-500" />,
+  //       title: "5 Team Seats",
+  //       description: "Collaborate efficiently with your teammates.",
+  //     },
+  //     {
+  //       icon: <Headphones className="w-6 h-6 text-indigo-500" />,
+  //       title: "Priority Email Support",
+  //       description: "Faster response times through email assistance.",
+  //     },
+  //   ],
 
-//   "price_1SB8gBHpVJPrOqLkYOKjHXfT": [
-//     {
-//       icon: <Crown className="w-6 h-6 text-yellow-500" />,
-//       title: "Everything in Standard",
-//       description: "Includes all features of the Standard plan.",
-//     },
-//     {
-//       icon: <Shield className="w-6 h-6 text-blue-500" />,
-//       title: "White-label Options",
-//       description: "Brand the platform as your own for clients.",
-//     },
-//     {
-//       icon: <Users className="w-6 h-6 text-pink-500" />,
-//       title: "Dedicated Manager",
-//       description: "Get expert guidance with a dedicated account manager.",
-//     },
-//     {
-//       icon: <Headphones className="w-6 h-6 text-indigo-500" />,
-//       title: "Phone & Chat Support",
-//       description: "Get help instantly with real-time support channels.",
-//     },
-//     {
-//       icon: <Zap className="w-6 h-6 text-green-500" />,
-//       title: "API Access",
-//       description: "Integrate programmatically with our robust API.",
-//     },
-//   ],
+  //   "price_1SB8gBHpVJPrOqLkYOKjHXfT": [
+  //     {
+  //       icon: <Crown className="w-6 h-6 text-yellow-500" />,
+  //       title: "Everything in Standard",
+  //       description: "Includes all features of the Standard plan.",
+  //     },
+  //     {
+  //       icon: <Shield className="w-6 h-6 text-blue-500" />,
+  //       title: "White-label Options",
+  //       description: "Brand the platform as your own for clients.",
+  //     },
+  //     {
+  //       icon: <Users className="w-6 h-6 text-pink-500" />,
+  //       title: "Dedicated Manager",
+  //       description: "Get expert guidance with a dedicated account manager.",
+  //     },
+  //     {
+  //       icon: <Headphones className="w-6 h-6 text-indigo-500" />,
+  //       title: "Phone & Chat Support",
+  //       description: "Get help instantly with real-time support channels.",
+  //     },
+  //     {
+  //       icon: <Zap className="w-6 h-6 text-green-500" />,
+  //       title: "API Access",
+  //       description: "Integrate programmatically with our robust API.",
+  //     },
+  //   ],
 
-//   "price_1SASUjHpVJPrOqLkHPAJjoNB": [
-//     {
-//       icon: <Crown className="w-6 h-6 text-yellow-500" />,
-//       title: "All Premium Features",
-//       description: "Includes every capability from the Premium plan.",
-//     },
-//     {
-//       icon: <Users className="w-6 h-6 text-pink-500" />,
-//       title: "Unlimited Team Members",
-//       description: "Scale collaboration without limits.",
-//     },
-//     {
-//       icon: <Shield className="w-6 h-6 text-blue-500" />,
-//       title: "Custom SLA & Training",
-//       description: "Enterprise-grade support and tailored onboarding.",
-//     },
-//     {
-//       icon: <Zap className="w-6 h-6 text-indigo-500" />,
-//       title: "Onboarding Assistance",
-//       description: "Hands-on guidance to get your team up to speed.",
-//     },
-//   ],
-// };
+  //   "price_1SASUjHpVJPrOqLkHPAJjoNB": [
+  //     {
+  //       icon: <Crown className="w-6 h-6 text-yellow-500" />,
+  //       title: "All Premium Features",
+  //       description: "Includes every capability from the Premium plan.",
+  //     },
+  //     {
+  //       icon: <Users className="w-6 h-6 text-pink-500" />,
+  //       title: "Unlimited Team Members",
+  //       description: "Scale collaboration without limits.",
+  //     },
+  //     {
+  //       icon: <Shield className="w-6 h-6 text-blue-500" />,
+  //       title: "Custom SLA & Training",
+  //       description: "Enterprise-grade support and tailored onboarding.",
+  //     },
+  //     {
+  //       icon: <Zap className="w-6 h-6 text-indigo-500" />,
+  //       title: "Onboarding Assistance",
+  //       description: "Hands-on guidance to get your team up to speed.",
+  //     },
+  //   ],
+  // };
 
-const benefitsByPlan: Record<
-  string,
-  { icon: JSX.Element; title: string; description: string }[]
-> = {
-  "price_1SB8eaHpVJPrOqLk3gNsUxe6": [ // Free Trial
-    {
-      icon: <Zap className="w-6 h-6 text-indigo-500" />,
-      title: "Unlimited Social Accounts",
-      description: "Connect all your social profiles without restrictions.",
-    },
-    {
-      icon: <BarChart className="w-6 h-6 text-green-500" />,
-      title: "Advanced Analytics & Reporting",
-      description: "Track performance with basic insights and metrics.",
-    },
-    {
-      icon: <Cpu className="w-6 h-6 text-pink-500" />,
-      title: "AI-powered Post Optimization",
-      description: "Leverage AI to optimize your post timings and reach.",
-    },
-    {
-      icon: <Users className="w-6 h-6 text-blue-500" />,
-      title: "Team Collaboration Tools",
-      description: "Work with your team efficiently on all campaigns.",
-    },
-    {
-      icon: <Headphones className="w-6 h-6 text-indigo-500" />,
-      title: "24/7 Priority Support",
-      description: "Get help whenever you need it, any time of day.",
-    },
-    {
-      icon: <Gift className="w-6 h-6 text-yellow-500" />,
-      title: "Ad Campaign Management",
-      description: "Manage and optimize your advertising campaigns.",
-    },
-  ],
+  const benefitsByPlan: Record<
+    string,
+    { icon: JSX.Element; title: string; description: string }[]
+  > = {
+    price_1SB8eaHpVJPrOqLk3gNsUxe6: [
+      // Free Trial
+      {
+        icon: <Zap className="w-6 h-6 text-indigo-500" />,
+        title: "Unlimited Social Accounts",
+        description: "Connect all your social profiles without restrictions.",
+      },
+      {
+        icon: <BarChart className="w-6 h-6 text-green-500" />,
+        title: "Advanced Analytics & Reporting",
+        description: "Track performance with basic insights and metrics.",
+      },
+      {
+        icon: <Cpu className="w-6 h-6 text-pink-500" />,
+        title: "AI-powered Post Optimization",
+        description: "Leverage AI to optimize your post timings and reach.",
+      },
+      {
+        icon: <Users className="w-6 h-6 text-blue-500" />,
+        title: "Team Collaboration Tools",
+        description: "Work with your team efficiently on all campaigns.",
+      },
+      {
+        icon: <Headphones className="w-6 h-6 text-indigo-500" />,
+        title: "24/7 Priority Support",
+        description: "Get help whenever you need it, any time of day.",
+      },
+      {
+        icon: <Gift className="w-6 h-6 text-yellow-500" />,
+        title: "Ad Campaign Management",
+        description: "Manage and optimize your advertising campaigns.",
+      },
+    ],
 
-  "price_1SB8fMHpVJPrOqLkuXOqCxDa": [ // Standard
-    {
-      icon: <Star className="w-6 h-6 text-purple-500" />,
-      title: "All Features of Free Trial",
-      description: "Includes everything from the Free Trial plan.",
-    },
-    {
-      icon: <Globe className="w-6 h-6 text-green-500" />,
-      title: "Advanced Integrations",
-      description: "Seamlessly connect with external tools and services.",
-    },
-    {
-      icon: <Users className="w-6 h-6 text-blue-500" />,
-      title: "Team Collaboration",
-      description: "Work with your team efficiently with 5 seats included.",
-    },
-    {
-      icon: <Cpu className="w-6 h-6 text-pink-500" />,
-      title: "White-label Options",
-      description: "Brand the platform as your own for clients.",
-    },
-    {
-      icon: <Headphones className="w-6 h-6 text-indigo-500" />,
-      title: "Custom Training",
-      description: "Get personalized training for your team.",
-    },
-    {
-      icon: <Zap className="w-6 h-6 text-green-500" />,
-      title: "API Access",
-      description: "Integrate programmatically with our API.",
-    },
-    {
-      icon: <Crown className="w-6 h-6 text-yellow-500" />,
-      title: "Dedicated Account Manager",
-      description: "Receive dedicated support and guidance.",
-    },
-  ],
+    price_1SB8fMHpVJPrOqLkuXOqCxDa: [
+      // Standard
+      {
+        icon: <Star className="w-6 h-6 text-purple-500" />,
+        title: "All Features of Free Trial",
+        description: "Includes everything from the Free Trial plan.",
+      },
+      {
+        icon: <Globe className="w-6 h-6 text-green-500" />,
+        title: "Advanced Integrations",
+        description: "Seamlessly connect with external tools and services.",
+      },
+      {
+        icon: <Users className="w-6 h-6 text-blue-500" />,
+        title: "Team Collaboration",
+        description: "Work with your team efficiently with 5 seats included.",
+      },
+      {
+        icon: <Cpu className="w-6 h-6 text-pink-500" />,
+        title: "White-label Options",
+        description: "Brand the platform as your own for clients.",
+      },
+      {
+        icon: <Headphones className="w-6 h-6 text-indigo-500" />,
+        title: "Custom Training",
+        description: "Get personalized training for your team.",
+      },
+      {
+        icon: <Zap className="w-6 h-6 text-green-500" />,
+        title: "API Access",
+        description: "Integrate programmatically with our API.",
+      },
+      {
+        icon: <Crown className="w-6 h-6 text-yellow-500" />,
+        title: "Dedicated Account Manager",
+        description: "Receive dedicated support and guidance.",
+      },
+    ],
 
-  "price_1SB8gBHpVJPrOqLkYOKjHXfT": [ // Premium
-    {
-      icon: <Star className="w-6 h-6 text-purple-500" />,
-      title: "Everything in Standard",
-      description: "Includes all features from the Standard plan.",
-    },
-    {
-      icon: <Cpu className="w-6 h-6 text-pink-500" />,
-      title: "White-label Options",
-      description: "Brand the platform as your own for clients.",
-    },
-    {
-      icon: <Users className="w-6 h-6 text-blue-500" />,
-      title: "Dedicated Manager",
-      description: "Get expert guidance with a dedicated account manager.",
-    },
-    {
-      icon: <Headphones className="w-6 h-6 text-indigo-500" />,
-      title: "Phone & Chat Support",
-      description: "Instant help through real-time channels.",
-    },
-    {
-      icon: <Zap className="w-6 h-6 text-green-500" />,
-      title: "API Access",
-      description: "Integrate programmatically with our API.",
-    },
-  ],
+    price_1SB8gBHpVJPrOqLkYOKjHXfT: [
+      // Premium
+      {
+        icon: <Star className="w-6 h-6 text-purple-500" />,
+        title: "Everything in Standard",
+        description: "Includes all features from the Standard plan.",
+      },
+      {
+        icon: <Cpu className="w-6 h-6 text-pink-500" />,
+        title: "White-label Options",
+        description: "Brand the platform as your own for clients.",
+      },
+      {
+        icon: <Users className="w-6 h-6 text-blue-500" />,
+        title: "Dedicated Manager",
+        description: "Get expert guidance with a dedicated account manager.",
+      },
+      {
+        icon: <Headphones className="w-6 h-6 text-indigo-500" />,
+        title: "Phone & Chat Support",
+        description: "Instant help through real-time channels.",
+      },
+      {
+        icon: <Zap className="w-6 h-6 text-green-500" />,
+        title: "API Access",
+        description: "Integrate programmatically with our API.",
+      },
+    ],
 
-  "price_1SASUjHpVJPrOqLkHPAJjoNB": [ // Enterprise
-    {
-      icon: <Star className="w-6 h-6 text-purple-500" />,
-      title: "All Premium Features",
-      description: "Includes every feature from the Premium plan.",
-    },
-    {
-      icon: <Users className="w-6 h-6 text-pink-500" />,
-      title: "Unlimited Team Members",
-      description: "Add as many team members as needed.",
-    },
-    {
-      icon: <Cpu className="w-6 h-6 text-blue-500" />,
-      title: "Custom SLA & Training",
-      description: "Enterprise-grade support and tailored onboarding.",
-    },
-    {
-      icon: <Zap className="w-6 h-6 text-indigo-500" />,
-      title: "Onboarding Assistance",
-      description: "Hands-on guidance to get your team up to speed.",
-    },
-  ],
-};
-
+    price_1SASUjHpVJPrOqLkHPAJjoNB: [
+      // Enterprise
+      {
+        icon: <Star className="w-6 h-6 text-purple-500" />,
+        title: "All Premium Features",
+        description: "Includes every feature from the Premium plan.",
+      },
+      {
+        icon: <Users className="w-6 h-6 text-pink-500" />,
+        title: "Unlimited Team Members",
+        description: "Add as many team members as needed.",
+      },
+      {
+        icon: <Cpu className="w-6 h-6 text-blue-500" />,
+        title: "Custom SLA & Training",
+        description: "Enterprise-grade support and tailored onboarding.",
+      },
+      {
+        icon: <Zap className="w-6 h-6 text-indigo-500" />,
+        title: "Onboarding Assistance",
+        description: "Hands-on guidance to get your team up to speed.",
+      },
+    ],
+  };
 
   if (!selectedPlan) {
     return (
       <div className="min-h-screen flex items-center justify-center text-center">
-        <p className="text-xl text-gray-600">Loading plan details or redirecting...</p>
+        <p className="text-xl text-gray-600">
+          Loading plan details or redirecting...
+        </p>
       </div>
     );
   }
@@ -839,14 +919,16 @@ const benefitsByPlan: Record<
                   Back to Home
                 </Button>
               </Link>
-               <div className="hidden md:block"> 
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center">
-                      <Crown className="text-white w-4 h-4" />
-                    </div>
-                    <span className="text-xl font-bold text-gray-900">insocialwise</span>
+              <div className="hidden md:block">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center">
+                    <Crown className="text-white w-4 h-4" />
                   </div>
+                  <span className="text-xl font-bold text-gray-900">
+                    insocialwise
+                  </span>
                 </div>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <Lock className="w-4 h-4 text-green-500" />
@@ -858,7 +940,6 @@ const benefitsByPlan: Record<
 
       <div className="container mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-          
           {/* Left Side - What You're Getting */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -876,20 +957,26 @@ const benefitsByPlan: Record<
                 <Crown className="w-4 h-4 mr-2" />
                 You're Securing the {selectedPlan.name} Plan
               </motion.div>
-              
+
               <h1 className="text-4xl font-bold text-gray-900 mb-4 mobile-heading">
-                Your <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Elite Access</span> Package
+                Your{" "}
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Elite Access
+                </span>{" "}
+                Package
               </h1>
-              
+
               <p className="text-xl text-gray-600 mb-8">
-                Join the exclusive group of entrepreneurs transforming their social media presence with our complete management suite.
+                Join the exclusive group of entrepreneurs transforming their
+                social media presence with our complete management suite.
               </p>
             </div>
 
-            
-           {/* Benefits List */}
+            {/* Benefits List */}
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">What's Included:</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                What's Included:
+              </h2>
 
               {(benefitsByPlan[selectedPlan.id] || []).map((benefit, index) => (
                 <motion.div
@@ -903,13 +990,14 @@ const benefitsByPlan: Record<
                     {benefit.icon}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{benefit.title}</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {benefit.title}
+                    </h3>
                     <p className="text-gray-600">{benefit.description}</p>
                   </div>
                 </motion.div>
               ))}
             </div>
-
 
             {/* Value Proposition */}
             <motion.div
@@ -922,7 +1010,9 @@ const benefitsByPlan: Record<
                 <div>
                   <p className="text-indigo-100 mb-2">Total Amount Due</p>
                   <p className="text-4xl font-bold">{selectedPlan.price}</p>
-                  <p className="text-indigo-100 mt-2">{selectedPlan.name} Plan</p>
+                  <p className="text-indigo-100 mt-2">
+                    {selectedPlan.name} Plan
+                  </p>
                 </div>
                 <div className="text-6xl opacity-20">
                   <Crown />
@@ -941,7 +1031,7 @@ const benefitsByPlan: Record<
               <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-8">
                 <CardTitle className="text-2xl font-bold flex items-center h3-mobile-heading">
                   <CreditCard className="w-6 h-6 mr-3" />
-                  Secure Your Access 
+                  Secure Your Access
                 </CardTitle>
                 <p className="text-indigo-100 mt-2">
                   Just add a payment method to secure your subscription.
@@ -950,9 +1040,14 @@ const benefitsByPlan: Record<
 
               <CardContent className="p-8 space-y-8">
                 {/* Customer Details Form */}
-                <form onSubmit={form.handleSubmit(handlePayment)} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(handlePayment)}
+                  className="space-y-6"
+                >
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Details</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Your Details
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="firstName">First Name</Label>
@@ -983,7 +1078,7 @@ const benefitsByPlan: Record<
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 gap-4 mt-4">
                       <div>
                         <Label htmlFor="email">Email Address</Label>
@@ -1000,7 +1095,7 @@ const benefitsByPlan: Record<
                           </p>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="phone">Phone Number</Label>
                         <Input
@@ -1008,7 +1103,12 @@ const benefitsByPlan: Record<
                           type="tel"
                           {...form.register("phone")}
                           className="mt-1"
-                          placeholder="+1 (555) 123-4567"
+                          placeholder="(555) 123-4567"
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const formatted = formatPhoneNumber(e.target.value);
+                            form.setValue("phone", formatted);
+                          }}
+                          data-testid="input-phone"
                         />
                         {form.formState.errors.phone && (
                           <p className="text-red-500 text-sm mt-1">
@@ -1034,13 +1134,41 @@ const benefitsByPlan: Record<
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                           >
                             {showPassword ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.7 10.7a3 3 0 104.6 4.6M6.4 6.4A9.44 9.44 0 003 12c1.5 4 5.6 7 9 7 1.6 0 3.2-.5 4.7-1.4M14.8 9.2A3 3 0 009.2 14.8" />
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M3 3l18 18M10.7 10.7a3 3 0 104.6 4.6M6.4 6.4A9.44 9.44 0 003 12c1.5 4 5.6 7 9 7 1.6 0 3.2-.5 4.7-1.4M14.8 9.2A3 3 0 009.2 14.8"
+                                />
                               </svg>
                             ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.244 12C3.766 7.61 7.612 4.5 12 4.5c4.39 0 8.236 3.11 9.757 7.5-1.521 4.39-5.367 7.5-9.757 7.5-4.39 0-8.236-3.11-9.757-7.5z" />
-                                <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M2.244 12C3.766 7.61 7.612 4.5 12 4.5c4.39 0 8.236 3.11 9.757 7.5-1.521 4.39-5.367 7.5-9.757 7.5-4.39 0-8.236-3.11-9.757-7.5z"
+                                />
+                                <circle
+                                  cx="12"
+                                  cy="12"
+                                  r="3"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
                               </svg>
                             )}
                           </button>
@@ -1051,7 +1179,6 @@ const benefitsByPlan: Record<
                           </p>
                         )}
                       </div>
-                      
                     </div>
                   </div>
 
@@ -1059,24 +1186,28 @@ const benefitsByPlan: Record<
 
                   {/* Payment Method Selection */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Choose Payment Method</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Choose Payment Method
+                    </h3>
                     <div className="grid grid-cols-1 gap-4">
                       <motion.button
                         type="button"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedPayment('stripe')}
+                        onClick={() => setSelectedPayment("stripe")}
                         className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                          selectedPayment === 'stripe'
-                            ? 'border-indigo-500 bg-indigo-50'
-                            : 'border-gray-200 hover:border-gray-300'
+                          selectedPayment === "stripe"
+                            ? "border-indigo-500 bg-indigo-50"
+                            : "border-gray-200 hover:border-gray-300"
                         }`}
                       >
                         <div className="flex items-center justify-center space-x-2">
                           <CreditCard className="w-5 h-5" />
                           <span className="font-medium">Stripe</span>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">Credit/Debit Cards</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Credit/Debit Cards
+                        </p>
                       </motion.button>
 
                       {/* <motion.button
@@ -1100,26 +1231,35 @@ const benefitsByPlan: Record<
                   </div>
 
                   {/* Stripe Card Fields */}
-                  {selectedPayment === 'stripe' && showStripeForm && clientSecret && stripePromise && (
-                    <div>
-                      <Separator className="my-6" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Card Details</h3>
-                      <Elements stripe={stripePromise} options={{ clientSecret }}>
-                        <StripeCheckoutForm 
-                          customerData={form.getValues()}
-                          onSuccess={handleStripeSuccess}
-                          onError={handleStripeError}
-                          clientSecret={clientSecret}
-                        />
-                      </Elements>
-                    </div>
-                  )}
-                  
+                  {selectedPayment === "stripe" &&
+                    showStripeForm &&
+                    clientSecret &&
+                    stripePromise && (
+                      <div>
+                        <Separator className="my-6" />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                          Card Details
+                        </h3>
+                        <Elements
+                          stripe={stripePromise}
+                          options={{ clientSecret }}
+                        >
+                          <StripeCheckoutForm
+                            customerData={form.getValues()}
+                            onSuccess={handleStripeSuccess}
+                            onError={handleStripeError}
+                            clientSecret={clientSecret}
+                          />
+                        </Elements>
+                      </div>
+                    )}
+
                   {/* Show message when Stripe is not configured */}
-                  {selectedPayment === 'stripe' && !stripePromise && (
+                  {selectedPayment === "stripe" && !stripePromise && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mt-4">
                       <p className="text-yellow-800 text-sm">
-                        Payment processing is not configured. Please contact support.
+                        Payment processing is not configured. Please contact
+                        support.
                       </p>
                     </div>
                   )}
@@ -1137,39 +1277,44 @@ const benefitsByPlan: Record<
                     </div>
                   )} */}
 
-                  {!(selectedPayment === 'stripe' && showStripeForm && clientSecret) 
-                    // && !(selectedPayment === 'razorpay' && showRazorpayForm) 
-                    && (
+                  {!(
+                    selectedPayment === "stripe" &&
+                    showStripeForm &&
+                    clientSecret
+                  ) && (
+                    // && !(selectedPayment === 'razorpay' && showRazorpayForm)
                     <>
-                    {/* Security Note */}
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                      <div className="flex items-center space-x-2">
-                        <Shield className="w-5 h-5 text-green-600" />
-                        <span className="font-medium text-green-800">100% Secure</span>
+                      {/* Security Note */}
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                        <div className="flex items-center space-x-2">
+                          <Shield className="w-5 h-5 text-green-600" />
+                          <span className="font-medium text-green-800">
+                            100% Secure
+                          </span>
+                        </div>
+                        <p className="text-green-700 text-sm mt-1">
+                          Your payment information is encrypted and secure.
+                        </p>
                       </div>
-                      <p className="text-green-700 text-sm mt-1">
-                        Your payment information is encrypted and secure.
-                      </p>
-                    </div>
 
-                    {/* Submit Button */}
-                    <Button
-                      type="submit"
-                      disabled={!selectedPayment || isProcessing}
-                      className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 disabled:opacity-50"
-                    >
-                      {isProcessing ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Processing...</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle2 className="w-5 h-5" />
-                          <span>Proceed to Payment</span>
-                        </div>
-                      )}
-                    </Button>
+                      {/* Submit Button */}
+                      <Button
+                        type="submit"
+                        disabled={!selectedPayment || isProcessing}
+                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 disabled:opacity-50"
+                      >
+                        {isProcessing ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Processing...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <CheckCircle2 className="w-5 h-5" />
+                            <span>Proceed to Payment</span>
+                          </div>
+                        )}
+                      </Button>
                     </>
                   )}
                 </form>

@@ -6,36 +6,41 @@ import { CheckCircle, Sparkles, Gift, Zap, Crown, Star } from "lucide-react";
 import { Link } from "wouter";
 
 // Features per plan
+// NOTE: Update the priceId values when you create new plans in Stripe
+// Free Trial plan should be configured in Stripe with:
+// - 1-day free trial period
+// - $10/day recurring billing after trial
 const plans = [
   {
-    id: "price_1SB8eaHpVJPrOqLk3gNsUxe6", // free trial price ID
+    id: "price_1SaBTZHpVJPrOqLkq7OMZXQ5", // TODO: Update with new Stripe price ID for $10/day plan with 1-day trial
     name: "Free Trial",
-    price: "$0",
-    sub: "/month",
+    price: "FREE",
+    sub: "for 1 day",
+    afterTrial: "$10/day after trial",
     highlight: true,
-    badge: "LIMITED OFFER",
+    badge: "TRY FREE",
     features: [
-      "Unlimited social accounts",
-      "Advanced analytics & reporting",
+      "1 day free access",
+      "All features included",
       "AI-powered post optimization",
-      "Team collaboration tools",
-      "24/7 priority support",
-      "Ad campaign management",
+      "Advanced analytics",
+      "Cancel anytime",
+      "No credit card for trial",
     ],
     button: {
-      text: "Start Trial",
-      link: "/checkout?priceId=price_1SB8eaHpVJPrOqLk3gNsUxe6",
+      text: "Start Free Trial",
+      link: "/checkout?priceId=price_1SaBTZHpVJPrOqLkq7OMZXQ5",
       variant: "primary",
     },
   },
   {
-    id: "price_1SB8fMHpVJPrOqLkuXOqCxDa", // standard plan price ID
+    id: "price_1SB8fMHpVJPrOqLkuXOqCxDa", // Standard plan price ID (monthly)
     name: "Standard",
     price: "$45",
     sub: "/month",
     badge: "MOST POPULAR",
     features: [
-     "All features included",
+      "All features included",
       "Advanced integrations",
       "White-label options", 
       "Custom training",
@@ -49,20 +54,20 @@ const plans = [
     },
   },
   {
-    id: "price_1SB8gBHpVJPrOqLkYOKjHXfT", // Pro plan price ID
+    id: "price_1SB8gBHpVJPrOqLkYOKjHXfT", // Premium plan price ID (monthly)
     name: "Premium",
     price: "$99",
     sub: "/month",
     badge: "Best Value",
     features: [
-      "Everything in Basic",
+      "Everything in Standard",
       "White-label options",
       "Dedicated manager",
       "Phone & chat support",
       "API Access",
     ],
     button: {
-      text: "Get premium",
+      text: "Get Premium",
       link: "/checkout?priceId=price_1SB8gBHpVJPrOqLkYOKjHXfT",
       variant: "primary",
     },
@@ -204,6 +209,11 @@ export default function PricingSection() {
                       {plan.sub}
                     </span>
                   </div>
+                  {plan.afterTrial && (
+                    <p className={`text-sm font-medium ${plan.highlight ? "text-yellow-200" : "text-gray-500"}`}>
+                      {plan.afterTrial}
+                    </p>
+                  )}
                 </CardHeader>
 
                 <CardContent className="px-6 pb-8 relative z-10">

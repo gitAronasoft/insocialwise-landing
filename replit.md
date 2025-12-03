@@ -75,6 +75,22 @@ The application runs on port 5000 (HTTP) for Replit compatibility.
 ### Environment Variables
 - `VITE_STRIPE_PUBLIC_KEY`: Stripe publishable key for checkout functionality
 
+## Pricing Structure
+
+The pricing is defined in `src/components/pricing-section.tsx`. When creating plans in Stripe, match these settings:
+
+| Plan | Price | Billing | Stripe Configuration |
+|------|-------|---------|---------------------|
+| Free Trial | FREE for 1 day, then $10/day | Daily | 1-day trial period + $10/day recurring |
+| Standard | $45/month | Monthly | Standard monthly subscription |
+| Premium | $99/month | Monthly | Standard monthly subscription |
+| Enterprise | Custom | Custom | Contact sales flow |
+
+**To update pricing:**
+1. Create new products/prices in your Stripe Dashboard
+2. Copy the new `price_xxx` IDs
+3. Update the `id` fields in `src/components/pricing-section.tsx`
+
 ## Deployment Strategy
 
 ### Build Process
