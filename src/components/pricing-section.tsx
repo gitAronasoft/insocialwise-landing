@@ -1,255 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Gift, Zap, Loader2, Plus } from "lucide-react";
+import { CheckCircle, Plus } from "lucide-react";
 import { Link } from "wouter";
-
-interface PlanFromAPI {
-  id: number;
-  name: string;
-  slug: string | null;
-  stripe_price_id: string | null;
-  stripe_yearly_price_id: string | null;
-  price: string;
-  monthly_price_usd: string;
-  yearly_price_usd: string | null;
-  monthly_price_inr: string;
-  yearly_price_inr: string | null;
-  yearly_price: string | null;
-  yearly_discount_percent: number;
-  currency: string;
-  billing_cycle: string;
-  features: string[] | string | null;
-  display_features: string[] | string | null;
-  description: string | null;
-  max_social_accounts: number | null;
-  max_team_members: number | null;
-  max_scheduled_posts: number | null;
-  is_featured: boolean;
-  trial_period_days: number | null;
-  trial_enabled: boolean;
-  skip_trial_discount_enabled: boolean;
-  skip_trial_discount_percent: number;
-  is_contact_only: boolean;
-  sort_order: number;
-}
-
-interface DisplayPlan {
-  id: string;
-  name: string;
-  slug: string | null;
-  monthlyPrice: number;
-  yearlyPrice: number;
-  currency: string;
-  yearlyDiscount: number;
-  highlight: boolean;
-  badge: string;
-  features: string[];
-  description: string | null;
-  trialDays: number | null;
-  trialEnabled: boolean;
-  skipTrialDiscountEnabled: boolean;
-  skipTrialDiscountPercent: number;
-  isContactOnly: boolean;
-  stripePriceId: string | null;
-  stripeYearlyPriceId: string | null;
-  inheritText?: string;
-}
-
-const fallbackPlans: DisplayPlan[] = [
-  {
-    id: "fallback-starter",
-    name: "Starter",
-    slug: "starter",
-    monthlyPrice: 19,
-    yearlyPrice: 228,
-    currency: "USD",
-    yearlyDiscount: 0,
-    highlight: false,
-    badge: "",
-    description: "Perfect for creators & freelancers",
-    trialDays: 30,
-    trialEnabled: true,
-    skipTrialDiscountEnabled: true,
-    skipTrialDiscountPercent: 10,
-    isContactOnly: false,
-    stripePriceId: null,
-    stripeYearlyPriceId: null,
-    features: [
-      "Up to 10 Social Profiles",
-      "AI Content Generator (200 tokens/month)",
-      "Basic Calendar Scheduling",
-      "Post Creation & Drafts",
-      "Basic Analytics Dashboard",
-      "AI Social Profile Score (Basic)",
-      "Media Library",
-      "1 User",
-      "Standard Support",
-    ],
-  },
-  {
-    id: "fallback-growth",
-    name: "Growth",
-    slug: "growth",
-    monthlyPrice: 49,
-    yearlyPrice: 588,
-    currency: "USD",
-    yearlyDiscount: 0,
-    highlight: true,
-    badge: "Most popular",
-    description: "Ideal for growing businesses & teams",
-    trialDays: 30,
-    trialEnabled: true,
-    skipTrialDiscountEnabled: true,
-    skipTrialDiscountPercent: 10,
-    isContactOnly: false,
-    stripePriceId: null,
-    stripeYearlyPriceId: null,
-    inheritText: "Everything in Starter, PLUS:",
-    features: [
-      "Up to 30 Social Profiles",
-      "AI Content Generator (1000 tokens/month)",
-      "Unified Social Inbox",
-      "AI Auto Comment Reply",
-      "AI Auto DM Reply",
-      "AI-Driven Reporting",
-      "Advanced Analytics & Trend Insights",
-      "Bulk Scheduling",
-      "Workflow Calendar Tools",
-      "Export Reports (PDF/CSV)",
-      "Up to 5 Users",
-      "Priority Support",
-    ],
-  },
-  {
-    id: "fallback-agency",
-    name: "Agency",
-    slug: "agency",
-    monthlyPrice: 99,
-    yearlyPrice: 1188,
-    currency: "USD",
-    yearlyDiscount: 0,
-    highlight: false,
-    badge: "",
-    description: "For agencies & enterprises",
-    trialDays: null,
-    trialEnabled: false,
-    skipTrialDiscountEnabled: false,
-    skipTrialDiscountPercent: 0,
-    isContactOnly: false,
-    stripePriceId: null,
-    stripeYearlyPriceId: null,
-    inheritText: "Everything in Growth, PLUS:",
-    features: [
-      "Up to 100 Social Profiles",
-      "AI Content Generator (3000 tokens/month)",
-      "AI Semantic Comment Analysis",
-      "Facebook Ads Analytics",
-      "Create & Manage Facebook Ad Campaigns",
-      "White-Label Reports",
-      "Client Workspaces",
-      "Team Roles & Permissions",
-      "Unified Inbox",
-      "10 Users",
-      "5GB Media Storage",
-      "Priority Chat Support",
-    ],
-  },
-];
-
-function transformPlan(plan: PlanFromAPI): DisplayPlan {
-  const isINR = plan.currency === 'INR';
-  
-  const monthlyPrice = isINR
-    ? (plan.monthly_price_inr ? parseFloat(plan.monthly_price_inr) : parseFloat(plan.price))
-    : (plan.monthly_price_usd ? parseFloat(plan.monthly_price_usd) : parseFloat(plan.price));
-  
-  const yearlyPrice = isINR
-    ? (plan.yearly_price_inr ? parseFloat(plan.yearly_price_inr) : monthlyPrice * 12)
-    : (plan.yearly_price_usd ? parseFloat(plan.yearly_price_usd) : plan.yearly_price ? parseFloat(plan.yearly_price) : monthlyPrice * 12);
-  
-  let parsedDisplayFeatures: string[] = [];
-  if (plan.display_features) {
-    if (typeof plan.display_features === 'string') {
-      try {
-        parsedDisplayFeatures = JSON.parse(plan.display_features);
-      } catch (e) {
-        parsedDisplayFeatures = [];
-      }
-    } else if (Array.isArray(plan.display_features)) {
-      parsedDisplayFeatures = plan.display_features;
-    }
-  }
-  
-  let parsedFeatures: string[] = [];
-  if (plan.features) {
-    if (typeof plan.features === 'string') {
-      try {
-        parsedFeatures = JSON.parse(plan.features);
-      } catch (e) {
-        parsedFeatures = [];
-      }
-    } else if (Array.isArray(plan.features)) {
-      parsedFeatures = plan.features;
-    }
-  }
-  
-  const features = parsedDisplayFeatures.length > 0 
-    ? parsedDisplayFeatures 
-    : parsedFeatures.length > 0 
-      ? parsedFeatures 
-      : generateDefaultFeatures(plan);
-
-  return {
-    id: plan.stripe_price_id || `plan-${plan.id}`,
-    name: plan.name,
-    slug: plan.slug,
-    monthlyPrice,
-    yearlyPrice,
-    currency: plan.currency || "USD",
-    yearlyDiscount: plan.yearly_discount_percent || 0,
-    highlight: plan.is_featured,
-    badge: plan.is_featured ? "Most popular" : "",
-    features,
-    description: plan.description,
-    trialDays: plan.trial_period_days,
-    trialEnabled: plan.trial_enabled,
-    skipTrialDiscountEnabled: plan.skip_trial_discount_enabled || false,
-    skipTrialDiscountPercent: plan.skip_trial_discount_percent || 0,
-    isContactOnly: plan.is_contact_only,
-    stripePriceId: plan.stripe_price_id,
-    stripeYearlyPriceId: plan.stripe_yearly_price_id,
-  };
-}
-
-function generateDefaultFeatures(plan: PlanFromAPI): string[] {
-  const features: string[] = [];
-  
-  if (plan.max_social_accounts) {
-    features.push(`${plan.max_social_accounts === -1 ? 'Unlimited' : plan.max_social_accounts} social accounts`);
-  }
-  if (plan.max_team_members) {
-    features.push(`${plan.max_team_members === -1 ? 'Unlimited' : plan.max_team_members} team members`);
-  }
-  if (plan.max_scheduled_posts) {
-    features.push(`${plan.max_scheduled_posts === -1 ? 'Unlimited' : plan.max_scheduled_posts} scheduled posts`);
-  }
-  
-  if (features.length === 0) {
-    features.push("All features included");
-    features.push("Advanced analytics");
-    features.push("Priority support");
-  }
-  
-  return features;
-}
+import { PricingSectionSkeleton } from "@/components/ui/skeleton";
+import { 
+  plansApi, 
+  transformPlanFromAPI, 
+  type DisplayPlan, 
+  type PlanFromAPI 
+} from "@/lib/api-service";
 
 function formatPrice(price: number, currency: string): string {
   if (price === 0) return "Custom";
   
-  const formatter = new Intl.NumberFormat('en-IN', {
+  const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: 0,
@@ -259,35 +26,40 @@ function formatPrice(price: number, currency: string): string {
   return formatter.format(price);
 }
 
+type LoadingState = 'loading' | 'success' | 'error' | 'empty';
+
 export default function PricingSection() {
   const [plans, setPlans] = useState<DisplayPlan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingState, setLoadingState] = useState<LoadingState>('loading');
   const [isYearly, setIsYearly] = useState(false);
 
-  useEffect(() => {
-    async function fetchPlans() {
-      try {
-        const response = await fetch('/api/plans/public');
-        const data = await response.json();
-        
-        if (data.success && data.data && data.data.length > 0) {
-          const transformedPlans = data.data.map(transformPlan);
-          setPlans(transformedPlans);
-        } else {
-          setPlans(fallbackPlans);
-        }
-      } catch (err) {
-        console.error('Error fetching plans:', err);
-        setError('Failed to load plans');
-        setPlans(fallbackPlans);
-      } finally {
-        setLoading(false);
+  const fetchPlans = useCallback(async () => {
+    setLoadingState('loading');
+    
+    try {
+      const response = await plansApi.getPublicPlans();
+      
+      if (response.success && response.data && response.data.length > 0) {
+        const transformedPlans = response.data.map(transformPlanFromAPI);
+        setPlans(transformedPlans);
+        setLoadingState('success');
+      } else if (response.success && (!response.data || response.data.length === 0)) {
+        setLoadingState('empty');
+      } else {
+        setLoadingState('error');
       }
+    } catch {
+      setLoadingState('error');
     }
-
-    fetchPlans();
   }, []);
+
+  useEffect(() => {
+    fetchPlans();
+  }, [fetchPlans]);
+
+  if (loadingState === 'error' || loadingState === 'empty') {
+    return null;
+  }
 
   const gridCols = plans.length <= 2 
     ? "md:grid-cols-2" 
@@ -382,11 +154,8 @@ export default function PricingSection() {
           </motion.div>
         </motion.div>
 
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-            <span className="ml-3 text-gray-600">Loading plans...</span>
-          </div>
+        {loadingState === 'loading' ? (
+          <PricingSectionSkeleton />
         ) : (
           <div className={`grid ${gridCols} gap-6 max-w-6xl mx-auto`}>
             {plans.map((plan, idx) => {
@@ -496,7 +265,7 @@ export default function PricingSection() {
                       )}
                       
                       {plan.isContactOnly && !plan.inheritText && (
-                        <p className="text-gray-700 font-semibold mb-4">Everything in Advanced, PLUS:</p>
+                        <p className="text-gray-700 font-semibold mb-4">Everything in Growth, PLUS:</p>
                       )}
                       
                       <ul className="space-y-3">
@@ -546,65 +315,67 @@ export default function PricingSection() {
           </div>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.6 }}
-          className="text-center mt-16"
-        >
+        {loadingState === 'success' && plans.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.7, duration: 0.5 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-8 p-4 sm:p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg w-full sm:w-auto mx-auto"
-          >
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-gray-700 font-medium text-sm sm:text-base">14-day free trial</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div
-                className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"
-                style={{ animationDelay: "0.5s" }}
-              ></div>
-              <span className="text-gray-700 font-medium text-sm sm:text-base">Cancel anytime</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div
-                className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"
-                style={{ animationDelay: "1s" }}
-              ></div>
-              <span className="text-gray-700 font-medium text-sm sm:text-base">Instant access</span>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.8, duration: 0.5 }}
-            className="flex flex-wrap justify-center gap-3 items-center text-gray-500 mx-auto"
+            transition={{ delay: 0.6 }}
+            className="text-center mt-16"
           >
-            <span className="text-sm font-medium">Secured & Trusted by</span>
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg"
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.7, duration: 0.5 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-8 p-4 sm:p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg w-full sm:w-auto mx-auto"
             >
-              <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-              <span className="text-indigo-600 font-semibold text-sm">Stripe</span>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-gray-700 font-medium text-sm sm:text-base">14-day free trial</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div
+                  className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"
+                  style={{ animationDelay: "0.5s" }}
+                ></div>
+                <span className="text-gray-700 font-medium text-sm sm:text-base">Cancel anytime</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div
+                  className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"
+                  style={{ animationDelay: "1s" }}
+                ></div>
+                <span className="text-gray-700 font-medium text-sm sm:text-base">Instant access</span>
+              </div>
             </motion.div>
-            
+
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="flex flex-wrap justify-center gap-3 items-center text-gray-500 mx-auto"
             >
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-green-600 font-semibold text-sm">256-bit SSL</span>
+              <span className="text-sm font-medium">Secured & Trusted by</span>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg"
+              >
+                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                <span className="text-indigo-600 font-semibold text-sm">Stripe</span>
+              </motion.div>
+              
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg"
+              >
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-green-600 font-semibold text-sm">256-bit SSL</span>
+              </motion.div>
             </motion.div>
           </motion.div>
-        </motion.div>
+        )}
       </div>
     </section>
   );

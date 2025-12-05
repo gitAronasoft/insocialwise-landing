@@ -9,22 +9,21 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Crown,
   Shield,
   CheckCircle2,
-  CreditCard,
   ArrowLeft,
+  Lock,
+  Check,
+  Crown,
+  CreditCard,
   Star,
   Zap,
-  Lock,
   Globe,
-  Wallet,
   Users,
   BarChart,
   Headphones,
   Cpu,
   Gift,
-  Check,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -35,7 +34,13 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { CheckoutPlanSkeleton } from "@/components/ui/skeleton";
+import { 
+  plansApi, 
+  paymentApi, 
+  transformPlanFromAPI,
+  type PlanFromAPI 
+} from "@/lib/api-service";
 
 const formatPhoneNumber = (value: string): string => {
   const phoneNumber = value.replace(/\D/g, "");
@@ -339,29 +344,7 @@ const StripeCheckoutForm = ({
 //   );
 // };
 
-interface PlanFromAPI {
-  id: number;
-  name: string;
-  stripe_price_id: string | null;
-  stripe_yearly_price_id: string | null;
-  price: string;
-  monthly_price_usd: string;
-  yearly_price_usd: string | null;
-  monthly_price_inr: string | null;
-  yearly_price_inr: string | null;
-  yearly_price: string | null;
-  yearly_discount_percent: number;
-  currency: string;
-  billing_cycle: string;
-  features: string[] | string | null;
-  display_features: string[] | string | null;
-  description: string | null;
-  trial_period_days: number | null;
-  trial_enabled: boolean;
-  is_contact_only: boolean;
-}
-
-interface DisplayPlan {
+interface CheckoutPlan {
   id: string;
   name: string;
   price: string;
@@ -393,7 +376,7 @@ export default function Checkout() {
     string | null
   >(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<DisplayPlan | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<CheckoutPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
 
   const { toast } = useToast();
@@ -417,54 +400,18 @@ export default function Checkout() {
       }
 
       try {
-        const response = await fetch('/api/plans/public');
-        const data = await response.json();
+        const response = await plansApi.getPublicPlans();
         
-        if (data.success && data.data && data.data.length > 0) {
-          const plan = data.data.find((p: PlanFromAPI) => 
+        if (response.success && response.data && response.data.length > 0) {
+          const plan = response.data.find((p: PlanFromAPI) => 
             p.stripe_price_id === selectedPriceId || p.stripe_yearly_price_id === selectedPriceId
           );
           
           if (plan) {
+            const transformed = transformPlanFromAPI(plan);
             const isYearlyPrice = plan.stripe_yearly_price_id === selectedPriceId;
-            
-            let parsedFeatures: string[] = [];
-            if (plan.display_features) {
-              if (typeof plan.display_features === 'string') {
-                try {
-                  parsedFeatures = JSON.parse(plan.display_features);
-                } catch (e) {
-                  parsedFeatures = [];
-                }
-              } else if (Array.isArray(plan.display_features)) {
-                parsedFeatures = plan.display_features;
-              }
-            }
-            
-            if (parsedFeatures.length === 0 && plan.features) {
-              if (typeof plan.features === 'string') {
-                try {
-                  parsedFeatures = JSON.parse(plan.features);
-                } catch (e) {
-                  parsedFeatures = [];
-                }
-              } else if (Array.isArray(plan.features)) {
-                parsedFeatures = plan.features;
-              }
-            }
-
-            const isINR = plan.currency === 'INR';
-            
-            const monthlyPrice = isINR
-              ? (plan.monthly_price_inr ? parseFloat(plan.monthly_price_inr) : parseFloat(plan.price))
-              : (plan.monthly_price_usd ? parseFloat(plan.monthly_price_usd) : parseFloat(plan.price));
-            
-            const yearlyPrice = isINR
-              ? (plan.yearly_price_inr ? parseFloat(plan.yearly_price_inr) : monthlyPrice * 12)
-              : (plan.yearly_price_usd ? parseFloat(plan.yearly_price_usd) : plan.yearly_price ? parseFloat(plan.yearly_price) : monthlyPrice * 12);
-            
-            const displayPrice = isYearlyPrice ? yearlyPrice : monthlyPrice;
-            const currencySymbol = isINR ? '₹' : '$';
+            const displayPrice = isYearlyPrice ? transformed.yearlyPrice : transformed.monthlyPrice;
+            const currencySymbol = plan.currency === 'INR' ? '₹' : '$';
             
             const planId = isYearlyPrice 
               ? (plan.stripe_yearly_price_id || selectedPriceId) 
@@ -477,7 +424,7 @@ export default function Checkout() {
               priceAmount: Math.round(displayPrice),
               sub: isYearlyPrice ? '/year' : '/month',
               trialDays: plan.trial_period_days || 0,
-              features: parsedFeatures,
+              features: transformed.features,
               currency: plan.currency || 'USD',
               isYearly: isYearlyPrice,
             });
@@ -520,22 +467,17 @@ export default function Checkout() {
     setIsProcessing(true);
 
     try {
-      const response = await api("/payment/create-subscription", {
-        // const response = await fetch(`${BACKEND_URL}/api/payment/create-subscription`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerData: data,
-          priceId: selectedPlan.id, // Use the dynamically selected priceId
-          trial_end: selectedPlan.trialDays, // pass trial info
-        }),
+      const response = await paymentApi.createSubscription({
+        customerData: data,
+        priceId: selectedPlan.id,
+        trial_end: selectedPlan.trialDays,
       });
 
-      if (response.success) {
-        setStripeCustomerId(response.stripeCustomerId);
-        setUserUUID(response.user_uuid);
-        setClientSecret(response.clientSecret);
-        setSubscriptionId(response.subscriptionId);
+      if (response.success && response.data) {
+        setStripeCustomerId(response.data.stripeCustomerId || "");
+        setUserUUID(response.data.user_uuid || "");
+        setClientSecret(response.data.clientSecret || null);
+        setSubscriptionId(response.data.subscriptionId || null);
         setShowStripeForm(true);
         toast({
           title: "Account Created Successfully",
@@ -551,7 +493,7 @@ export default function Checkout() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Connection Issue",
         description:
@@ -573,20 +515,19 @@ export default function Checkout() {
   //   // }, 1500);
   // };
 
-  const handleStripeSuccess = async (payment_method: string) => {
+  const handleStripeSuccess = async (_payment_method: string) => {
+    if (!subscriptionId) {
+      handleStripeError("Invalid subscription. Please try again.");
+      return;
+    }
+
     try {
-      const result = await api("/payment/confirm", {
-        method: "POST",
-        body: JSON.stringify({
-          user_uuid: userUUID,
-          subscriptionId: subscriptionId,
-          // stripeCustomerId: stripeCustomerId,
-          // priceId: `${selectedPlan?.id}`,
-          // payment_method: payment_method
-        }),
+      const result = await paymentApi.confirmPayment({
+        user_uuid: userUUID,
+        subscriptionId: subscriptionId,
       });
 
-      if (result.success) {
+      if (result.success && result.data) {
         toast({
           title: "Payment Successful",
           description:
@@ -594,7 +535,7 @@ export default function Checkout() {
         });
 
         setTimeout(() => {
-          window.location.href = `/success?priceId=${selectedPlan?.id}&token=${result?.user_uuid}`;
+          window.location.href = `/success?priceId=${selectedPlan?.id}&token=${result.data?.user_uuid}`;
         }, 800);
       } else {
         toast({
@@ -605,7 +546,7 @@ export default function Checkout() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Connection Issue",
         description:
