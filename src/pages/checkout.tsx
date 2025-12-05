@@ -1,6 +1,7 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +35,6 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { useToast } from "@/hooks/use-toast";
-import { CheckoutPlanSkeleton } from "@/components/ui/skeleton";
 import { 
   plansApi, 
   paymentApi, 
@@ -158,25 +158,20 @@ const StripeCheckoutForm = ({
         />
       </div>
 
-      <Button
+      <LoadingButton
         type="button"
         onClick={handleCardSubmit}
-        disabled={!stripe || isProcessing}
+        disabled={!stripe}
+        loading={isProcessing}
+        loadingText="Processing Payment..."
         className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 disabled:opacity-50"
         data-testid="button-complete-payment"
       >
-        {isProcessing ? (
-          <div className="flex items-center space-x-2">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Processing Payment...</span>
-          </div>
-        ) : (
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5" />
-            <span>Complete Payment Setup</span>
-          </div>
-        )}
-      </Button>
+        <div className="flex items-center space-x-2">
+          <CheckCircle2 className="w-5 h-5" />
+          <span>Complete Payment Setup</span>
+        </div>
+      </LoadingButton>
     </div>
   );
 };
@@ -473,11 +468,11 @@ export default function Checkout() {
         trial_end: selectedPlan.trialDays,
       });
 
-      if (response.success && response.data) {
-        setStripeCustomerId(response.data.stripeCustomerId || "");
-        setUserUUID(response.data.user_uuid || "");
-        setClientSecret(response.data.clientSecret || null);
-        setSubscriptionId(response.data.subscriptionId || null);
+      if (response.success && response.success === true) {
+        setStripeCustomerId(response.customerId || "");
+        setUserUUID(response.user_uuid || "");
+        setClientSecret(response.clientSecret || null);
+        setSubscriptionId(response.subscriptionId || null);
         setShowStripeForm(true);
         toast({
           title: "Account Created Successfully",
@@ -527,7 +522,7 @@ export default function Checkout() {
         subscriptionId: subscriptionId,
       });
 
-      if (result.success && result.data) {
+      if (result.success && result.success === true) {
         toast({
           title: "Payment Successful",
           description:
@@ -535,7 +530,7 @@ export default function Checkout() {
         });
 
         setTimeout(() => {
-          window.location.href = `/success?priceId=${selectedPlan?.id}&token=${result.data?.user_uuid}`;
+          window.location.href = `/success?priceId=${selectedPlan?.id}&token=${result.user_uuid}&trialDays=${selectedPlan?.trialDays || 0}`;
         }, 800);
       } else {
         toast({
@@ -917,8 +912,8 @@ export default function Checkout() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-xl text-gray-600">Loading plan details...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+          <p className="text-lg text-gray-600">Loading plan details...</p>
         </div>
       </div>
     );

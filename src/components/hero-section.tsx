@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Star, Users, Calendar, BarChart3, Zap, Shield } from "lucide-react";
 import { motion } from "framer-motion";
+import logoImage from "@/img/in-social-icon.png";
 
 interface HeroVariantCProps {
   remaining: number;
@@ -193,7 +194,7 @@ export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCPr
                   <div className="flex items-center space-x-3">
                     {/* <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl"></div> */}
                     <div className="w-10 h-10">
-                      <img src="./src/img/in-social-icon.png" alt="insocialwise-logo" className="w-full h-full object-contain" />
+                      <img src={logoImage} alt="insocialwise-logo" className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-gray-100">insocialwise </h3>

@@ -42,6 +42,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
+    <!-- Instant preloader - shows before React loads -->
+    <div id="app-preloader" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:linear-gradient(to bottom right,#f8fafc,#fff,rgba(238,242,255,0.5));">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:24px;">
+        <div style="position:relative;">
+          <div style="position:absolute;inset:-20px;border-radius:9999px;background:linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.2));filter:blur(16px);animation:pulse-glow 2s ease-in-out infinite;"></div>
+          <img src="/src/img/in-social-icon.png" alt="" style="position:relative;z-index:10;width:80px;height:80px;object-fit:contain;animation:float 1.5s ease-in-out infinite;filter:drop-shadow(0 10px 15px rgba(0,0,0,0.1));" />
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div style="width:8px;height:8px;border-radius:9999px;background:linear-gradient(135deg,#6366f1,#8b5cf6);animation:dot-pulse 0.8s ease-in-out infinite;"></div>
+          <div style="width:8px;height:8px;border-radius:9999px;background:linear-gradient(135deg,#6366f1,#8b5cf6);animation:dot-pulse 0.8s ease-in-out infinite 0.15s;"></div>
+          <div style="width:8px;height:8px;border-radius:9999px;background:linear-gradient(135deg,#6366f1,#8b5cf6);animation:dot-pulse 0.8s ease-in-out infinite 0.3s;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+        @keyframes pulse-glow{0%,100%{transform:scale(1);opacity:0.8}50%{transform:scale(1.05);opacity:1}}
+        @keyframes dot-pulse{0%,100%{transform:scale(1);opacity:0.5}50%{transform:scale(1.4);opacity:1}}
+      </style>
+    </div>
+    <script>window.hideAppPreloader=function(){var p=document.getElementById('app-preloader');if(p){p.style.transition='opacity 0.4s ease-out';p.style.opacity='0';setTimeout(function(){p.remove()},400);}}</script>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->

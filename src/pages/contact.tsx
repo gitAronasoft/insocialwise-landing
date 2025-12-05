@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -453,21 +454,15 @@ export default function Contact() {
                     />
                   </div>
 
-                  <Button
+                  <LoadingButton
                     type="submit"
                     size="lg"
-                    disabled={isSubmitting}
+                    loading={isSubmitting}
+                    loadingText="Submitting..."
                     className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-4 text-lg rounded-xl transition-all duration-300"
                   >
-                    {isSubmitting ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Submitting...</span>
-                      </div>
-                    ) : (
-                      <span>Request Demo</span>
-                    )}
-                  </Button>
+                    Request Demo
+                  </LoadingButton>
 
                   <p className="text-xs text-gray-500 text-center">
                     By submitting this form, you agree to our{" "}

@@ -300,7 +300,7 @@ export interface CustomerData {
 export interface CreateSubscriptionResponse {
   success: boolean;
   clientSecret?: string;
-  stripeCustomerId?: string;
+  customerId?: string;
   user_uuid?: string;
   subscriptionId?: string;
   error?: string;
@@ -309,8 +309,12 @@ export interface CreateSubscriptionResponse {
 export interface ConfirmPaymentResponse {
   success: boolean;
   user_uuid?: string;
+  subscriptionId?: number;
   error?: string;
 }
+
+export type CreateSubscriptionApiResponse = ApiResponse<CreateSubscriptionResponse> & CreateSubscriptionResponse;
+export type ConfirmPaymentApiResponse = ApiResponse<ConfirmPaymentResponse> & ConfirmPaymentResponse;
 
 export const plansApi = {
   getPublicPlans: () => apiService.get<PlanFromAPI[]>('/api/plans/public'),
@@ -326,12 +330,14 @@ export const paymentApi = {
     customerData: CustomerData;
     priceId: string;
     trial_end?: number;
-  }) => apiService.post<CreateSubscriptionResponse>('/api/payment/create-subscription', data),
+  }): Promise<CreateSubscriptionApiResponse> => 
+    apiService.post<CreateSubscriptionResponse>('/api/payment/create-subscription', data) as Promise<CreateSubscriptionApiResponse>,
 
   confirmPayment: (data: {
     user_uuid: string;
     subscriptionId: string;
-  }) => apiService.post<ConfirmPaymentResponse>('/api/payment/confirm', data),
+  }): Promise<ConfirmPaymentApiResponse> => 
+    apiService.post<ConfirmPaymentResponse>('/api/payment/confirm', data) as Promise<ConfirmPaymentApiResponse>,
 };
 
 export function transformPlanFromAPI(plan: PlanFromAPI): DisplayPlan {

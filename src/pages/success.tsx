@@ -53,6 +53,7 @@ export default function Success() {
   const [loadingPlan, setLoadingPlan] = useState(true);
   const queryParams = new URLSearchParams(window.location.search);
   const selectedPriceId = queryParams.get("priceId");
+  const urlTrialDays = queryParams.get("trialDays");
   const APPURL = import.meta.env.VITE_APP_URL;
 
   const nextSteps = [
@@ -139,6 +140,10 @@ export default function Success() {
             
             const displayPrice = isYearlyPrice ? yearlyPrice : monthlyPrice;
 
+            const actualTrialDays = urlTrialDays !== null 
+              ? parseInt(urlTrialDays, 10) 
+              : (foundPlan.trial_period_days || 0);
+
             setPlan({
               id: foundPlan.stripe_price_id || `plan-${foundPlan.id}`,
               name: foundPlan.name,
@@ -146,7 +151,7 @@ export default function Success() {
               priceAmount: Math.round(displayPrice),
               features: parsedFeatures,
               currency: foundPlan.currency || 'USD',
-              trialDays: foundPlan.trial_period_days || 14,
+              trialDays: actualTrialDays,
               isYearly: isYearlyPrice,
               billingCycle: isYearlyPrice ? 'Yearly' : 'Monthly',
             });
@@ -173,7 +178,8 @@ export default function Success() {
 
   const features = plan?.features && plan.features.length > 0 ? plan.features : defaultFeatures;
   
-  const trialEndDate = new Date(Date.now() + ((plan?.trialDays || 14) * 24 * 60 * 60 * 1000)).toLocaleDateString('en-US', { 
+  const effectiveTrialDays = plan?.trialDays ?? (urlTrialDays !== null ? parseInt(urlTrialDays, 10) : 0);
+  const trialEndDate = new Date(Date.now() + (effectiveTrialDays * 24 * 60 * 60 * 1000)).toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'long', 
     day: 'numeric' 
@@ -238,16 +244,18 @@ export default function Success() {
             🎉 Congratulations! Your {plan?.name || 'subscription'} has been activated. You're now part of an exclusive group of entrepreneurs.
           </motion.p>
 
-          {/* Trial Badge - Dynamic */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 text-lg font-semibold mb-4 custom-font-mobile"
-          >
-            <Crown className="w-6 h-6 mr-2" />
-            FREE until {trialEndDate}
-          </motion.div>
+          {/* Trial Badge - Dynamic - Only show if trial exists */}
+          {effectiveTrialDays > 0 && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
+              className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 text-lg font-semibold mb-4 custom-font-mobile"
+            >
+              <Crown className="w-6 h-6 mr-2" />
+              FREE until {trialEndDate}
+            </motion.div>
+          )}
         </div>
       </div>
 
@@ -306,11 +314,14 @@ export default function Success() {
 
                   <div className="space-y-2">
                     <p className="text-indigo-700 font-semibold">
-                      You Paid: {plan?.price || 'Subscription Activated'}/{plan?.isYearly ? 'year' : 'month'}
+                      {effectiveTrialDays > 0 
+                        ? `Trial Active: ${plan?.price || 'Subscription'}/${plan?.isYearly ? 'year' : 'month'} starts after trial`
+                        : `You Paid: ${plan?.price || 'Subscription Activated'}/${plan?.isYearly ? 'year' : 'month'}`
+                      }
                     </p>
-                    {plan?.trialDays && plan.trialDays > 0 && (
+                    {effectiveTrialDays > 0 && (
                       <p className="text-indigo-600 text-sm">
-                        Your {plan.trialDays}-day free trial ends on {trialEndDate}
+                        Your {effectiveTrialDays}-day free trial ends on {trialEndDate}
                       </p>
                     )}
                   </div>
