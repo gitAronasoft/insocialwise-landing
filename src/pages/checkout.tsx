@@ -24,6 +24,7 @@ import {
   Headphones,
   Cpu,
   Gift,
+  Check,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -338,52 +339,45 @@ const StripeCheckoutForm = ({
 //   );
 // };
 
-// Define your plans array here to be accessible by the Checkout component
-// const plans = [
-//   { id: "price_1SAUaHHpVJPrOqLkZtrrJcT2", name: "One Day Trial", price: "$1", sub: "/day" },
-//   { id: "price_1SASUjHpVJPrOqLkHPAJjoNz", name: "Basic", price: "$10", sub: "/month" },
-//   { id: "price_1SASUjHpVJPrOqLkHPAJjoNA", name: "Pro", price: "$30", sub: "/month" },
-//   { id: "price_1SASUjHpVJPrOqLkHPAJjoNB", name: "Enterprise", price: "Custom", sub: "Tailored" },
-// ];
+interface PlanFromAPI {
+  id: number;
+  name: string;
+  stripe_price_id: string | null;
+  stripe_yearly_price_id: string | null;
+  price: string;
+  monthly_price_usd: string;
+  yearly_price_usd: string | null;
+  monthly_price_inr: string | null;
+  yearly_price_inr: string | null;
+  yearly_price: string | null;
+  yearly_discount_percent: number;
+  currency: string;
+  billing_cycle: string;
+  features: string[] | string | null;
+  display_features: string[] | string | null;
+  description: string | null;
+  trial_period_days: number | null;
+  trial_enabled: boolean;
+  is_contact_only: boolean;
+}
 
-const plans = [
-  // Corrected plans based on your PricingSection.jsx
-  {
-    id: "price_1SaBTZHpVJPrOqLkq7OMZXQ5",
-    name: "Free Trial",
-    price: "$10",
-    sub: "/day",
-    trialDays: 1,
-  },
-  {
-    id: "price_1SB8fMHpVJPrOqLkuXOqCxDa",
-    name: "Standard",
-    price: "$45",
-    sub: "/month",
-    trialDays: 30,
-  },
-  {
-    id: "price_1SB8gBHpVJPrOqLkYOKjHXfT",
-    name: "Premium",
-    price: "$99",
-    sub: "/month",
-    trialDays: 30,
-  },
-  {
-    id: "price_1SASUjHpVJPrOqLkHPAJjoNB",
-    name: "Enterprise",
-    price: "Custom",
-    sub: "Tailored",
-    trialDays: 0,
-  },
-];
+interface DisplayPlan {
+  id: string;
+  name: string;
+  price: string;
+  priceAmount: number;
+  sub: string;
+  trialDays: number;
+  features: string[];
+  currency: string;
+  isYearly: boolean;
+}
 
 export default function Checkout() {
   const [, setLocation] = useLocation();
   const queryParams = new URLSearchParams(window.location.search);
   const selectedPriceId = queryParams.get("priceId");
 
-  // const [selectedPayment, setSelectedPayment] = useState<'stripe' | 'razorpay' | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<"stripe" | null>(
     "stripe",
   );
@@ -399,8 +393,9 @@ export default function Checkout() {
     string | null
   >(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<DisplayPlan | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
 
-  // const BACKEND_URL = `${import.meta.env.REACT_APP_BACKEND_URL}`;
   const { toast } = useToast();
 
   const form = useForm<CustomerForm>({
@@ -414,15 +409,96 @@ export default function Checkout() {
     },
   });
 
-  const selectedPlan = plans.find((plan) => plan.id === selectedPriceId);
+  useEffect(() => {
+    async function fetchPlanData() {
+      if (!selectedPriceId) {
+        setLoadingPlan(false);
+        return;
+      }
 
-  // Scroll to top when page loads
+      try {
+        const response = await fetch('/api/plans/public');
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.length > 0) {
+          const plan = data.data.find((p: PlanFromAPI) => 
+            p.stripe_price_id === selectedPriceId || p.stripe_yearly_price_id === selectedPriceId
+          );
+          
+          if (plan) {
+            const isYearlyPrice = plan.stripe_yearly_price_id === selectedPriceId;
+            
+            let parsedFeatures: string[] = [];
+            if (plan.display_features) {
+              if (typeof plan.display_features === 'string') {
+                try {
+                  parsedFeatures = JSON.parse(plan.display_features);
+                } catch (e) {
+                  parsedFeatures = [];
+                }
+              } else if (Array.isArray(plan.display_features)) {
+                parsedFeatures = plan.display_features;
+              }
+            }
+            
+            if (parsedFeatures.length === 0 && plan.features) {
+              if (typeof plan.features === 'string') {
+                try {
+                  parsedFeatures = JSON.parse(plan.features);
+                } catch (e) {
+                  parsedFeatures = [];
+                }
+              } else if (Array.isArray(plan.features)) {
+                parsedFeatures = plan.features;
+              }
+            }
+
+            const isINR = plan.currency === 'INR';
+            
+            const monthlyPrice = isINR
+              ? (plan.monthly_price_inr ? parseFloat(plan.monthly_price_inr) : parseFloat(plan.price))
+              : (plan.monthly_price_usd ? parseFloat(plan.monthly_price_usd) : parseFloat(plan.price));
+            
+            const yearlyPrice = isINR
+              ? (plan.yearly_price_inr ? parseFloat(plan.yearly_price_inr) : monthlyPrice * 12)
+              : (plan.yearly_price_usd ? parseFloat(plan.yearly_price_usd) : plan.yearly_price ? parseFloat(plan.yearly_price) : monthlyPrice * 12);
+            
+            const displayPrice = isYearlyPrice ? yearlyPrice : monthlyPrice;
+            const currencySymbol = isINR ? '₹' : '$';
+            
+            const planId = isYearlyPrice 
+              ? (plan.stripe_yearly_price_id || selectedPriceId) 
+              : (plan.stripe_price_id || selectedPriceId || `plan-${plan.id}`);
+
+            setSelectedPlan({
+              id: planId,
+              name: plan.name,
+              price: `${currencySymbol}${Math.round(displayPrice).toLocaleString()}`,
+              priceAmount: Math.round(displayPrice),
+              sub: isYearlyPrice ? '/year' : '/month',
+              trialDays: plan.trial_period_days || 0,
+              features: parsedFeatures,
+              currency: plan.currency || 'USD',
+              isYearly: isYearlyPrice,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching plan:', err);
+      } finally {
+        setLoadingPlan(false);
+      }
+    }
+
+    fetchPlanData();
+  }, [selectedPriceId]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
-    if (!selectedPlan) {
+    if (!loadingPlan && !selectedPlan && selectedPriceId) {
       toast({
         title: "Plan Not Found",
         description:
@@ -433,7 +509,7 @@ export default function Checkout() {
         setLocation("/");
       }, 2000);
     }
-  }, [selectedPlan, setLocation, toast]);
+  }, [selectedPlan, loadingPlan, selectedPriceId, setLocation, toast]);
 
   const handleStripeSetup = async (data: CustomerForm) => {
     if (!selectedPlan) {
@@ -896,12 +972,23 @@ export default function Checkout() {
     ],
   };
 
+  if (loadingPlan) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600">Loading plan details...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!selectedPlan) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-center">
-        <p className="text-xl text-gray-600">
-          Loading plan details or redirecting...
-        </p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="text-center">
+          <p className="text-xl text-gray-600">Plan not found. Redirecting...</p>
+        </div>
       </div>
     );
   }
@@ -972,31 +1059,49 @@ export default function Checkout() {
               </p>
             </div>
 
-            {/* Benefits List */}
+            {/* Benefits List - from API features or fallback to hardcoded */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 What's Included:
               </h2>
 
-              {(benefitsByPlan[selectedPlan.id] || []).map((benefit, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
-                  className="flex items-start space-x-4 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/50 hover:shadow-lg transition-all duration-300"
-                >
-                  <div className="flex-shrink-0 p-2 bg-white rounded-xl shadow-sm">
-                    {benefit.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
-                      {benefit.title}
-                    </h3>
-                    <p className="text-gray-600">{benefit.description}</p>
-                  </div>
-                </motion.div>
-              ))}
+              {selectedPlan.features && selectedPlan.features.length > 0 ? (
+                selectedPlan.features.map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                    className="flex items-start space-x-3 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 hover:shadow-md transition-all duration-300"
+                  >
+                    <div className="flex-shrink-0 p-1.5 bg-white rounded-lg shadow-sm">
+                      <Check className="w-5 h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm">{feature}</p>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                (benefitsByPlan[selectedPlan.id] || []).map((benefit, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                    className="flex items-start space-x-3 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 hover:shadow-md transition-all duration-300"
+                  >
+                    <div className="flex-shrink-0 p-1.5 bg-white rounded-lg shadow-sm">
+                      {benefit.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-900 text-sm">
+                        {benefit.title}
+                      </h3>
+                    </div>
+                  </motion.div>
+                ))
+              )}
             </div>
 
             {/* Value Proposition */}
@@ -1009,9 +1114,9 @@ export default function Checkout() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-indigo-100 mb-2">Total Amount Due</p>
-                  <p className="text-4xl font-bold">{selectedPlan.price}</p>
+                  <p className="text-4xl font-bold">{selectedPlan.price}<span className="text-lg font-normal">{selectedPlan.sub}</span></p>
                   <p className="text-indigo-100 mt-2">
-                    {selectedPlan.name} Plan
+                    {selectedPlan.name} Plan {selectedPlan.isYearly ? '(Yearly)' : '(Monthly)'}
                   </p>
                 </div>
                 <div className="text-6xl opacity-20">
@@ -1038,11 +1143,11 @@ export default function Checkout() {
                 </p>
               </CardHeader>
 
-              <CardContent className="p-8 space-y-8">
+              <CardContent className="p-6 space-y-5">
                 {/* Customer Details Form */}
                 <form
                   onSubmit={form.handleSubmit(handlePayment)}
-                  className="space-y-6"
+                  className="space-y-4"
                 >
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">

@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Star, Users, Calendar, BarChart3, Zap, Shield } from "lucide-react";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
 
 interface HeroVariantCProps {
   remaining: number;
@@ -114,16 +113,19 @@ export default function HeroVariantC({ remaining, onGetStarted }: HeroVariantCPr
               className="space-y-4"
             >
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/checkout?priceId=price_1SaBTZHpVJPrOqLkq7OMZXQ5">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg rounded-full shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"
-                  >
-                    {/* Claim Your Free Year */}
-                    Claim Your Free Month
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  onClick={() => {
+                    const pricingSection = document.getElementById('pricing');
+                    if (pricingSection) {
+                      pricingSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg rounded-full shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"
+                >
+                  Start Your Free Trial
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
                 
                 <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
                   <div className="flex items-center space-x-1">

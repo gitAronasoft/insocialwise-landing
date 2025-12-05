@@ -1,104 +1,314 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Sparkles, Gift, Zap, Crown, Star } from "lucide-react";
+import { CheckCircle, Gift, Zap, Loader2, Plus } from "lucide-react";
 import { Link } from "wouter";
 
-// Features per plan
-// NOTE: Update the priceId values when you create new plans in Stripe
-// Free Trial plan should be configured in Stripe with:
-// - 1-day free trial period
-// - $10/day recurring billing after trial
-const plans = [
+interface PlanFromAPI {
+  id: number;
+  name: string;
+  slug: string | null;
+  stripe_price_id: string | null;
+  stripe_yearly_price_id: string | null;
+  price: string;
+  monthly_price_usd: string;
+  yearly_price_usd: string | null;
+  monthly_price_inr: string;
+  yearly_price_inr: string | null;
+  yearly_price: string | null;
+  yearly_discount_percent: number;
+  currency: string;
+  billing_cycle: string;
+  features: string[] | string | null;
+  display_features: string[] | string | null;
+  description: string | null;
+  max_social_accounts: number | null;
+  max_team_members: number | null;
+  max_scheduled_posts: number | null;
+  is_featured: boolean;
+  trial_period_days: number | null;
+  trial_enabled: boolean;
+  skip_trial_discount_enabled: boolean;
+  skip_trial_discount_percent: number;
+  is_contact_only: boolean;
+  sort_order: number;
+}
+
+interface DisplayPlan {
+  id: string;
+  name: string;
+  slug: string | null;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  currency: string;
+  yearlyDiscount: number;
+  highlight: boolean;
+  badge: string;
+  features: string[];
+  description: string | null;
+  trialDays: number | null;
+  trialEnabled: boolean;
+  skipTrialDiscountEnabled: boolean;
+  skipTrialDiscountPercent: number;
+  isContactOnly: boolean;
+  stripePriceId: string | null;
+  stripeYearlyPriceId: string | null;
+  inheritText?: string;
+}
+
+const fallbackPlans: DisplayPlan[] = [
   {
-    id: "price_1SaBTZHpVJPrOqLkq7OMZXQ5", // TODO: Update with new Stripe price ID for $10/day plan with 1-day trial
-    name: "Free Trial",
-    price: "FREE",
-    sub: "for 1 day",
-    afterTrial: "$10/day after trial",
+    id: "fallback-starter",
+    name: "Starter",
+    slug: "starter",
+    monthlyPrice: 19,
+    yearlyPrice: 228,
+    currency: "USD",
+    yearlyDiscount: 0,
+    highlight: false,
+    badge: "",
+    description: "Perfect for creators & freelancers",
+    trialDays: 30,
+    trialEnabled: true,
+    skipTrialDiscountEnabled: true,
+    skipTrialDiscountPercent: 10,
+    isContactOnly: false,
+    stripePriceId: null,
+    stripeYearlyPriceId: null,
+    features: [
+      "Up to 10 Social Profiles",
+      "AI Content Generator (200 tokens/month)",
+      "Basic Calendar Scheduling",
+      "Post Creation & Drafts",
+      "Basic Analytics Dashboard",
+      "AI Social Profile Score (Basic)",
+      "Media Library",
+      "1 User",
+      "Standard Support",
+    ],
+  },
+  {
+    id: "fallback-growth",
+    name: "Growth",
+    slug: "growth",
+    monthlyPrice: 49,
+    yearlyPrice: 588,
+    currency: "USD",
+    yearlyDiscount: 0,
     highlight: true,
-    badge: "TRY FREE",
+    badge: "Most popular",
+    description: "Ideal for growing businesses & teams",
+    trialDays: 30,
+    trialEnabled: true,
+    skipTrialDiscountEnabled: true,
+    skipTrialDiscountPercent: 10,
+    isContactOnly: false,
+    stripePriceId: null,
+    stripeYearlyPriceId: null,
+    inheritText: "Everything in Starter, PLUS:",
     features: [
-      "1 day free access",
-      "All features included",
-      "AI-powered post optimization",
-      "Advanced analytics",
-      "Cancel anytime",
-      "No credit card for trial",
+      "Up to 30 Social Profiles",
+      "AI Content Generator (1000 tokens/month)",
+      "Unified Social Inbox",
+      "AI Auto Comment Reply",
+      "AI Auto DM Reply",
+      "AI-Driven Reporting",
+      "Advanced Analytics & Trend Insights",
+      "Bulk Scheduling",
+      "Workflow Calendar Tools",
+      "Export Reports (PDF/CSV)",
+      "Up to 5 Users",
+      "Priority Support",
     ],
-    button: {
-      text: "Start Free Trial",
-      link: "/checkout?priceId=price_1SaBTZHpVJPrOqLkq7OMZXQ5",
-      variant: "primary",
-    },
   },
   {
-    id: "price_1SB8fMHpVJPrOqLkuXOqCxDa", // Standard plan price ID (monthly)
-    name: "Standard",
-    price: "$45",
-    sub: "/month",
-    badge: "MOST POPULAR",
+    id: "fallback-agency",
+    name: "Agency",
+    slug: "agency",
+    monthlyPrice: 99,
+    yearlyPrice: 1188,
+    currency: "USD",
+    yearlyDiscount: 0,
+    highlight: false,
+    badge: "",
+    description: "For agencies & enterprises",
+    trialDays: null,
+    trialEnabled: false,
+    skipTrialDiscountEnabled: false,
+    skipTrialDiscountPercent: 0,
+    isContactOnly: false,
+    stripePriceId: null,
+    stripeYearlyPriceId: null,
+    inheritText: "Everything in Growth, PLUS:",
     features: [
-      "All features included",
-      "Advanced integrations",
-      "White-label options", 
-      "Custom training",
-      "API access",
-      "Dedicated account manager"
+      "Up to 100 Social Profiles",
+      "AI Content Generator (3000 tokens/month)",
+      "AI Semantic Comment Analysis",
+      "Facebook Ads Analytics",
+      "Create & Manage Facebook Ad Campaigns",
+      "White-Label Reports",
+      "Client Workspaces",
+      "Team Roles & Permissions",
+      "Unified Inbox",
+      "10 Users",
+      "5GB Media Storage",
+      "Priority Chat Support",
     ],
-    button: {
-      text: "Get Standard",
-      link: "/checkout?priceId=price_1SB8fMHpVJPrOqLkuXOqCxDa",
-      variant: "secondary",
-    },
-  },
-  {
-    id: "price_1SB8gBHpVJPrOqLkYOKjHXfT", // Premium plan price ID (monthly)
-    name: "Premium",
-    price: "$99",
-    sub: "/month",
-    badge: "Best Value",
-    features: [
-      "Everything in Standard",
-      "White-label options",
-      "Dedicated manager",
-      "Phone & chat support",
-      "API Access",
-    ],
-    button: {
-      text: "Get Premium",
-      link: "/checkout?priceId=price_1SB8gBHpVJPrOqLkYOKjHXfT",
-      variant: "primary",
-    },
-  },
-  {
-    id: "price_1SASUjHpVJPrOqLkHPAJjoNB", // Enterprise plan price ID
-    name: "Enterprise",
-    price: "Custom",
-    sub: "Tailored",
-    badge: "Enterprise",
-    features: [
-      "All Premium features",
-      "Unlimited team members",
-      "Custom SLA & training",
-      "Onboarding assistance",
-    ],
-    button: {
-      text: "Contact Sales",
-      link: "/contact",
-      variant: "outline",
-    },
   },
 ];
 
+function transformPlan(plan: PlanFromAPI): DisplayPlan {
+  const isINR = plan.currency === 'INR';
+  
+  const monthlyPrice = isINR
+    ? (plan.monthly_price_inr ? parseFloat(plan.monthly_price_inr) : parseFloat(plan.price))
+    : (plan.monthly_price_usd ? parseFloat(plan.monthly_price_usd) : parseFloat(plan.price));
+  
+  const yearlyPrice = isINR
+    ? (plan.yearly_price_inr ? parseFloat(plan.yearly_price_inr) : monthlyPrice * 12)
+    : (plan.yearly_price_usd ? parseFloat(plan.yearly_price_usd) : plan.yearly_price ? parseFloat(plan.yearly_price) : monthlyPrice * 12);
+  
+  let parsedDisplayFeatures: string[] = [];
+  if (plan.display_features) {
+    if (typeof plan.display_features === 'string') {
+      try {
+        parsedDisplayFeatures = JSON.parse(plan.display_features);
+      } catch (e) {
+        parsedDisplayFeatures = [];
+      }
+    } else if (Array.isArray(plan.display_features)) {
+      parsedDisplayFeatures = plan.display_features;
+    }
+  }
+  
+  let parsedFeatures: string[] = [];
+  if (plan.features) {
+    if (typeof plan.features === 'string') {
+      try {
+        parsedFeatures = JSON.parse(plan.features);
+      } catch (e) {
+        parsedFeatures = [];
+      }
+    } else if (Array.isArray(plan.features)) {
+      parsedFeatures = plan.features;
+    }
+  }
+  
+  const features = parsedDisplayFeatures.length > 0 
+    ? parsedDisplayFeatures 
+    : parsedFeatures.length > 0 
+      ? parsedFeatures 
+      : generateDefaultFeatures(plan);
+
+  return {
+    id: plan.stripe_price_id || `plan-${plan.id}`,
+    name: plan.name,
+    slug: plan.slug,
+    monthlyPrice,
+    yearlyPrice,
+    currency: plan.currency || "USD",
+    yearlyDiscount: plan.yearly_discount_percent || 0,
+    highlight: plan.is_featured,
+    badge: plan.is_featured ? "Most popular" : "",
+    features,
+    description: plan.description,
+    trialDays: plan.trial_period_days,
+    trialEnabled: plan.trial_enabled,
+    skipTrialDiscountEnabled: plan.skip_trial_discount_enabled || false,
+    skipTrialDiscountPercent: plan.skip_trial_discount_percent || 0,
+    isContactOnly: plan.is_contact_only,
+    stripePriceId: plan.stripe_price_id,
+    stripeYearlyPriceId: plan.stripe_yearly_price_id,
+  };
+}
+
+function generateDefaultFeatures(plan: PlanFromAPI): string[] {
+  const features: string[] = [];
+  
+  if (plan.max_social_accounts) {
+    features.push(`${plan.max_social_accounts === -1 ? 'Unlimited' : plan.max_social_accounts} social accounts`);
+  }
+  if (plan.max_team_members) {
+    features.push(`${plan.max_team_members === -1 ? 'Unlimited' : plan.max_team_members} team members`);
+  }
+  if (plan.max_scheduled_posts) {
+    features.push(`${plan.max_scheduled_posts === -1 ? 'Unlimited' : plan.max_scheduled_posts} scheduled posts`);
+  }
+  
+  if (features.length === 0) {
+    features.push("All features included");
+    features.push("Advanced analytics");
+    features.push("Priority support");
+  }
+  
+  return features;
+}
+
+function formatPrice(price: number, currency: string): string {
+  if (price === 0) return "Custom";
+  
+  const formatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  
+  return formatter.format(price);
+}
+
 export default function PricingSection() {
+  const [plans, setPlans] = useState<DisplayPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isYearly, setIsYearly] = useState(false);
+
+  useEffect(() => {
+    async function fetchPlans() {
+      try {
+        const response = await fetch('/api/plans/public');
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.length > 0) {
+          const transformedPlans = data.data.map(transformPlan);
+          setPlans(transformedPlans);
+        } else {
+          setPlans(fallbackPlans);
+        }
+      } catch (err) {
+        console.error('Error fetching plans:', err);
+        setError('Failed to load plans');
+        setPlans(fallbackPlans);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPlans();
+  }, []);
+
+  const gridCols = plans.length <= 2 
+    ? "md:grid-cols-2" 
+    : plans.length === 3 
+      ? "lg:grid-cols-3" 
+      : "md:grid-cols-2 lg:grid-cols-4";
+
+  const maxYearlySavings = plans.reduce((maxSavings, plan) => {
+    if (plan.monthlyPrice > 0 && plan.yearlyPrice > 0) {
+      const monthlyTotal = plan.monthlyPrice * 12;
+      const savings = ((monthlyTotal - plan.yearlyPrice) / monthlyTotal) * 100;
+      return Math.max(maxSavings, Math.round(savings));
+    }
+    return maxSavings;
+  }, 0);
+
   return (
     <section
       id="pricing"
-      className="py-24 relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-purple-50/30"
+      className="py-24 relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30"
     >
-      {/* Floating elements */}
       <motion.div
         animate={{ y: [0, -30, 0], rotate: [0, 10, 0], scale: [1, 1.2, 1] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
@@ -111,40 +321,20 @@ export default function PricingSection() {
       />
 
       <div className="container mx-auto px-6 relative z-10">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-20"
+          className="text-center mb-16"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-200/50 backdrop-blur-sm mb-8"
-          >
-            <Gift className="w-5 h-5 text-yellow-600 mr-2" />
-            <span className="text-sm font-semibold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent timezone-font">
-              🎉 Limited Time Offer - First 100 Users Only
-            </span>
-          </motion.div>
-
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-6xl font-extrabold mb-6 mobile-heading"
+            className="text-4xl md:text-5xl font-bold mb-4 text-gray-900"
           >
-            <span className="bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent">
-            Get Full Access
-
-            </span>
-            <br />
-            <span className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 bg-clip-text text-transparent">
-             Completely Free
-            </span>
+            Choose Your Plan
           </motion.h2>
 
           <motion.p
@@ -152,108 +342,210 @@ export default function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed"
+            className="text-lg text-gray-600 max-w-2xl mx-auto mb-10"
           >
-           The first 100 users get full access to insocialwise for 1 entire year. No credit card required, no hidden fees. Limited spots remaining!
+            Start with a free 14-day trial. Credit card required to begin.
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="inline-flex items-center bg-gray-100 rounded-full p-1 mb-8"
+          >
+            <button
+              onClick={() => setIsYearly(false)}
+              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
+                !isYearly 
+                  ? "bg-white text-gray-900 shadow-md" 
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setIsYearly(true)}
+              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
+                isYearly 
+                  ? "bg-white text-gray-900 shadow-md" 
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Yearly
+              {maxYearlySavings > 0 && (
+                <span className="bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold">
+                  Save up to {maxYearlySavings}%
+                </span>
+              )}
+            </button>
+          </motion.div>
         </motion.div>
 
-        {/* Pricing grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
-          {plans.map((plan, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -8 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card
-                className={`relative overflow-hidden rounded-3xl shadow-xl ${
-                  plan.highlight
-                    ? "bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white"
-                    : "bg-white/90 border border-gray-200"
-                }`}
-              >
-                {plan.badge && (
-                  <Badge
-                    className={`absolute top-4 left-1/2 transform -translate-x-1/2 p-2 text-sm font-bold shadow-md ${
-                      plan.highlight ? "bg-yellow-400 text-white" : "bg-gray-600 text-white"
-                    }`}
-                  >
-                    {plan.badge}
-                  </Badge>
-                )}
-                <CardHeader className="text-center pt-16 pb-6 relative z-10">
-                  <h3
-                    className={`text-2xl font-extrabold mt-3 mb-3 ${
-                      plan.highlight ? "text-white" : "text-gray-900"
-                    }`}
-                  >
-                    {plan.name}
-                  </h3>
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <span
-                      className={`text-5xl font-extrabold ${
-                        plan.highlight
-                          ? "bg-gradient-to-r from-white to-yellow-200 bg-clip-text text-transparent"
-                          : "text-gray-900"
-                      }`}
-                    >
-                      {plan.price}
-                    </span>
-                    <span
-                      className={`text-lg ${plan.highlight ? "text-yellow-100" : "text-gray-500"}`}
-                    >
-                      {plan.sub}
-                    </span>
-                  </div>
-                  {plan.afterTrial && (
-                    <p className={`text-sm font-medium ${plan.highlight ? "text-yellow-200" : "text-gray-500"}`}>
-                      {plan.afterTrial}
-                    </p>
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            <span className="ml-3 text-gray-600">Loading plans...</span>
+          </div>
+        ) : (
+          <div className={`grid ${gridCols} gap-6 max-w-6xl mx-auto`}>
+            {plans.map((plan, idx) => {
+              const displayPrice = isYearly 
+                ? plan.yearlyPrice / 12 
+                : plan.monthlyPrice;
+              
+              const priceId = isYearly 
+                ? plan.stripeYearlyPriceId 
+                : plan.stripePriceId;
+              
+              const buttonLink = plan.isContactOnly 
+                ? "/contact" 
+                : priceId 
+                  ? `/checkout?priceId=${priceId}` 
+                  : "/contact";
+
+              const buttonText = plan.isContactOnly 
+                ? "Request a Demo" 
+                : plan.trialEnabled && plan.trialDays 
+                  ? `Free ${plan.trialDays}-day trial` 
+                  : `Get ${plan.name}`;
+
+              return (
+                <motion.div
+                  key={plan.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  className="relative"
+                >
+                  {plan.badge && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
+                      <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-1 text-sm font-semibold shadow-lg">
+                        {plan.badge}
+                      </Badge>
+                    </div>
                   )}
-                </CardHeader>
+                  
+                  <Card
+                    className={`relative overflow-hidden rounded-2xl h-full ${
+                      plan.highlight
+                        ? "border-2 border-indigo-500 shadow-xl bg-white"
+                        : "border border-gray-200 shadow-lg bg-white"
+                    }`}
+                  >
+                    <CardHeader className="pt-8 pb-4 px-6 border-b border-gray-100">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">
+                        {plan.name}
+                      </h3>
+                      
+                      <div className="flex items-baseline mb-2">
+                        {plan.isContactOnly ? (
+                          <span className="text-3xl font-bold text-gray-900">Custom</span>
+                        ) : (
+                          <>
+                            <span className="text-3xl font-bold text-gray-900">
+                              {formatPrice(displayPrice, plan.currency)}
+                            </span>
+                            <span className="text-gray-500 ml-1">per user/mo*</span>
+                          </>
+                        )}
+                      </div>
+                      
+                      {!plan.isContactOnly && (
+                        <Link href={buttonLink}>
+                          <Button
+                            size="lg"
+                            className={`w-full font-semibold py-3 rounded-lg mt-4 ${
+                              plan.highlight || plan.trialEnabled
+                                ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white" 
+                                : "bg-gray-900 hover:bg-gray-800 text-white"
+                            }`}
+                          >
+                            {buttonText}
+                          </Button>
+                        </Link>
+                      )}
+                      
+                      {plan.isContactOnly && (
+                        <Link href={buttonLink}>
+                          <Button
+                            size="lg"
+                            variant="outline"
+                            className="w-full font-semibold py-3 rounded-lg mt-4 border-2 border-gray-900 text-gray-900 hover:bg-gray-100"
+                          >
+                            {buttonText}
+                          </Button>
+                        </Link>
+                      )}
+                      
+                      {plan.trialEnabled && plan.trialDays && !plan.isContactOnly && plan.skipTrialDiscountEnabled && (
+                        <button className="w-full text-center text-sm text-indigo-600 font-medium mt-2 hover:underline">
+                          Skip trial, get {plan.skipTrialDiscountPercent}% off*
+                        </button>
+                      )}
+                    </CardHeader>
 
-                <CardContent className="px-6 pb-8 relative z-10">
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((f, i) => (
-                      <li
-                        key={i}
-                        className={`flex items-center ${
-                          plan.highlight ? "text-white" : "text-gray-700"
-                        }`}
-                      >
-                        <CheckCircle
-                          className={`w-5 h-5 mr-3 ${
-                            plan.highlight ? "text-green-300" : "text-green-500"
-                          }`}
-                        />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    <CardContent className="px-6 py-6">
+                      {plan.inheritText && (
+                        <p className="text-gray-700 font-semibold mb-4">{plan.inheritText}</p>
+                      )}
+                      
+                      {!plan.inheritText && !plan.isContactOnly && (
+                        <p className="text-gray-700 font-semibold mb-4">Features included:</p>
+                      )}
+                      
+                      {plan.isContactOnly && !plan.inheritText && (
+                        <p className="text-gray-700 font-semibold mb-4">Everything in Advanced, PLUS:</p>
+                      )}
+                      
+                      <ul className="space-y-3">
+                        {plan.features.map((feature, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start text-gray-700"
+                          >
+                            {plan.isContactOnly ? (
+                              <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
+                            ) : (
+                              <CheckCircle className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
+                            )}
+                            <span className="text-sm">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      
+                      {plan.isContactOnly && (
+                        <>
+                          <p className="text-gray-700 font-semibold mt-6 mb-4">Maximize performance with:</p>
+                          <ul className="space-y-3">
+                            <li className="flex items-start text-gray-700">
+                              <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
+                              <span className="text-sm">Employee Advocacy (Amplify)</span>
+                            </li>
+                            <li className="flex items-start text-gray-700">
+                              <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
+                              <span className="text-sm">Listening powered by Talkwalker</span>
+                            </li>
+                            <li className="flex items-start text-gray-700">
+                              <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
+                              <span className="text-sm">Advanced Analytics</span>
+                            </li>
+                            <li className="flex items-start text-gray-700">
+                              <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
+                              <span className="text-sm">Advanced Inbox</span>
+                            </li>
+                          </ul>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
-                  <Link href={plan.button.link}>
-                    <Button
-                      size="lg"
-                      variant={plan.button.variant === "outline" ? "outline" : "default"}
-                      className={`w-full font-bold py-3 rounded-xl ${
-                        plan.highlight ? "bg-white text-indigo-600 hover:bg-yellow-50" : ""
-                      }`}
-                    >
-                      <Zap className="w-4 h-4 mr-2" />
-                      {plan.button.text}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Trust & urgency indicators */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -265,12 +557,12 @@ export default function PricingSection() {
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.7, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ delay: 0.7, duration: 0.5 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-8 p-4 sm:p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg w-full sm:w-auto mx-auto"
           >
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-gray-700 font-medium text-sm sm:text-base">No credit card required</span>
+              <span className="text-gray-700 font-medium text-sm sm:text-base">14-day free trial</span>
             </div>
             <div className="flex items-center space-x-2">
               <div
@@ -292,7 +584,7 @@ export default function PricingSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.8, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ delay: 0.8, duration: 0.5 }}
             className="flex flex-wrap justify-center gap-3 items-center text-gray-500 mx-auto"
           >
             <span className="text-sm font-medium">Secured & Trusted by</span>
@@ -311,28 +603,6 @@ export default function PricingSection() {
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-green-600 font-semibold text-sm">256-bit SSL</span>
             </motion.div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 1, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="mt-8 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-xl border border-orange-200/50"
-          >
-            <div className="flex items-center justify-center space-x-2 text-orange-700">
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Zap className="w-5 h-5" />
-              </motion.div>
-              <span className="font-semibold">Limited Time Offer</span>
-           
-              <span className="text-orange-600">•</span>
-              <span className="text-sm">Spots filling up fast!</span>
-             
-            </div>
           </motion.div>
         </motion.div>
       </div>

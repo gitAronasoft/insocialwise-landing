@@ -3,7 +3,6 @@ import HeroSection from "@/components/hero-section";
 import FeaturesSection from "@/components/features-section";
 import PlatformIntegration from "@/components/platform-integration";
 import PricingSection from "@/components/pricing-section";
-import RegistrationForm from "@/components/registration-form";
 import SocialProof from "@/components/social-proof";
 import FAQSection from "@/components/faq-section";
 import Footer from "@/components/footer";
@@ -57,7 +56,7 @@ export default function Landing() {
               </button>
               
               <Button 
-                onClick={() => scrollToSection('registration')}
+                onClick={() => scrollToSection('pricing')}
                 className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 transition-all duration-300 transform hover:scale-105"
                 data-testid="button-get-free-access"
               >
@@ -101,7 +100,7 @@ export default function Landing() {
                 </button>
                 
                 <Button 
-                  onClick={() => scrollToSection('registration')}
+                  onClick={() => scrollToSection('pricing')}
                   className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 w-full mt-4"
                 >
                   Get Free Access
@@ -113,11 +112,10 @@ export default function Landing() {
       </nav>
 
       <main>
-        <HeroSection remaining={50} onGetStarted={() => scrollToSection('registration')} />
+        <HeroSection remaining={50} onGetStarted={() => scrollToSection('pricing')} />
         <FeaturesSection />
         <PlatformIntegration />
         <PricingSection />
-        <RegistrationForm />
         <SocialProof />
         <FAQSection />
         
@@ -192,7 +190,7 @@ export default function Landing() {
                 transition={{ delay: 0.2, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
               >
                 <Button 
-                  onClick={() => scrollToSection('registration')}
+                  onClick={() => scrollToSection('pricing')}
                   size="lg"
                   className="bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white font-bold px-8 py-4 text-lg rounded-xl transition-all duration-300"
                   data-testid="button-cta-register"

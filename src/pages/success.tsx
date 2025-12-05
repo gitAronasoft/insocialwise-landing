@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { plans } from "@/components/plans";
+import { Badge } from "@/components/ui/badge";
 import { 
   CheckCircle2, 
   Crown, 
@@ -15,20 +15,45 @@ import {
   Users,
   Download
 } from "lucide-react";
-import { Link, useLocation} from "wouter";
+import { Link } from "wouter";
+
+interface PlanFromAPI {
+  id: number;
+  name: string;
+  stripe_price_id: string | null;
+  stripe_yearly_price_id: string | null;
+  price: string;
+  monthly_price_usd: string;
+  yearly_price_usd: string | null;
+  monthly_price_inr: string | null;
+  yearly_price_inr: string | null;
+  yearly_price: string | null;
+  currency: string;
+  billing_cycle: string;
+  features: string[] | string | null;
+  display_features: string[] | string | null;
+  trial_period_days: number | null;
+  is_featured: boolean;
+}
+
+interface DisplayPlan {
+  id: string;
+  name: string;
+  price: string;
+  priceAmount: number;
+  features: string[];
+  currency: string;
+  trialDays: number;
+  isYearly: boolean;
+  billingCycle: string;
+}
 
 export default function Success() {
-    const [plan, setPlan] = useState<any>(null);
-  const [, setLocation] = useLocation();
+  const [plan, setPlan] = useState<DisplayPlan | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
   const queryParams = new URLSearchParams(window.location.search);
   const selectedPriceId = queryParams.get("priceId");
-  const [isAnimating, setIsAnimating] = useState(true);
   const APPURL = import.meta.env.VITE_APP_URL;
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsAnimating(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const nextSteps = [
     {
@@ -57,59 +82,124 @@ export default function Success() {
     }
   ];
 
-  // const features = [
-  //   "All social media platforms connected",
-  //   "AI content generator activated",
-  //   "Analytics dashboard enabled",
-  //   "Team collaboration tools ready",
-  //   "Priority support activated",
-  //   "Advanced scheduling features unlocked"
-  // ];
+  useEffect(() => {
+    async function fetchPlanData() {
+      if (!selectedPriceId) {
+        setLoadingPlan(false);
+        return;
+      }
 
-useEffect(() => {
-  if (selectedPriceId) {
-    const matchedPlan = plans.find((p) => p.id === selectedPriceId);
-    if (matchedPlan) {
-      setPlan(matchedPlan);
+      try {
+        const response = await fetch('/api/plans/public');
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.length > 0) {
+          const foundPlan = data.data.find((p: PlanFromAPI) => 
+            p.stripe_price_id === selectedPriceId || p.stripe_yearly_price_id === selectedPriceId
+          );
+          
+          if (foundPlan) {
+            const isYearlyPrice = foundPlan.stripe_yearly_price_id === selectedPriceId;
+            
+            let parsedFeatures: string[] = [];
+            if (foundPlan.display_features) {
+              if (typeof foundPlan.display_features === 'string') {
+                try {
+                  parsedFeatures = JSON.parse(foundPlan.display_features);
+                } catch (e) {
+                  parsedFeatures = [];
+                }
+              } else if (Array.isArray(foundPlan.display_features)) {
+                parsedFeatures = foundPlan.display_features;
+              }
+            }
+            
+            if (parsedFeatures.length === 0 && foundPlan.features) {
+              if (typeof foundPlan.features === 'string') {
+                try {
+                  parsedFeatures = JSON.parse(foundPlan.features);
+                } catch (e) {
+                  parsedFeatures = [];
+                }
+              } else if (Array.isArray(foundPlan.features)) {
+                parsedFeatures = foundPlan.features;
+              }
+            }
+
+            const isINR = foundPlan.currency === 'INR';
+            const currencySymbol = isINR ? '₹' : '$';
+            
+            const monthlyPrice = isINR
+              ? (foundPlan.monthly_price_inr ? parseFloat(foundPlan.monthly_price_inr) : parseFloat(foundPlan.price))
+              : (foundPlan.monthly_price_usd ? parseFloat(foundPlan.monthly_price_usd) : parseFloat(foundPlan.price));
+            
+            const yearlyPrice = isINR
+              ? (foundPlan.yearly_price_inr ? parseFloat(foundPlan.yearly_price_inr) : monthlyPrice * 12)
+              : (foundPlan.yearly_price_usd ? parseFloat(foundPlan.yearly_price_usd) : foundPlan.yearly_price ? parseFloat(foundPlan.yearly_price) : monthlyPrice * 12);
+            
+            const displayPrice = isYearlyPrice ? yearlyPrice : monthlyPrice;
+
+            setPlan({
+              id: foundPlan.stripe_price_id || `plan-${foundPlan.id}`,
+              name: foundPlan.name,
+              price: `${currencySymbol}${Math.round(displayPrice).toLocaleString()}`,
+              priceAmount: Math.round(displayPrice),
+              features: parsedFeatures,
+              currency: foundPlan.currency || 'USD',
+              trialDays: foundPlan.trial_period_days || 14,
+              isYearly: isYearlyPrice,
+              billingCycle: isYearlyPrice ? 'Yearly' : 'Monthly',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching plan:', err);
+      } finally {
+        setLoadingPlan(false);
+      }
+    }
+
+    fetchPlanData();
+  }, [selectedPriceId]);
+
+  const defaultFeatures = [
+    "All social media platforms connected",
+    "AI content generator activated",
+    "Analytics dashboard enabled",
+    "Team collaboration tools ready",
+    "Priority support activated",
+    "Advanced scheduling features unlocked"
+  ];
+
+  const features = plan?.features && plan.features.length > 0 ? plan.features : defaultFeatures;
+  
+  const trialEndDate = new Date(Date.now() + ((plan?.trialDays || 14) * 24 * 60 * 60 * 1000)).toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  function handleRedirect() {
+    const token = queryParams.get("token");
+    if (APPURL && token) {
+      window.open(`${APPURL}/onboarding?token=${token}`, '_blank');
+    } else if (APPURL) {
+      window.open(`${APPURL}/onboarding`, '_blank');
+    } else {
+      console.warn("App URL not configured. Please set VITE_APP_URL environment variable.");
     }
   }
-}, [selectedPriceId]);
 
-const features = plan?.features || [
-  "All social media platforms connected",
-  "AI content generator activated",
-  "Analytics dashboard enabled",
-  "Team collaboration tools ready",
-  "Priority support activated",
-  "Advanced scheduling features unlocked"
-];
-
-// const monthlyPrice = Number(plan?.price?.replace("$", "")) || 0;
-// console.log(monthlyPrice);
-// const totalMonths = plan?.totalMonths || 12;
-// console.log(totalMonths);
-// const monthlySavings = plan?.savings || 200;
-// console.log(monthlySavings);
-// const totalValue = monthlySavings * totalMonths;
-// console.log(totalValue);
-
-function handleRedirect() {
-  const token = queryParams.get("token");
-  if (APPURL && token) {
-    window.open(`${APPURL}/onboarding?token=${token}`, '_blank');
-  } else if (APPURL) {
-    window.open(`${APPURL}/onboarding`, '_blank');
-  } else {
-    console.warn("App URL not configured. Please set VITE_API_URL environment variable.");
+  if (loadingPlan) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600">Loading your subscription details...</p>
+        </div>
+      </div>
+    );
   }
-}
-
-const monthlyPrice = plan?.price 
-  ? Number(plan.price.replace("$", "")) 
-  : 0;
-const totalMonths = plan?.totalMonths || 12;
-const monthlySavings = plan?.savings || 200;
-const totalValue = monthlySavings * totalMonths;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
@@ -134,7 +224,7 @@ const totalValue = monthlySavings * totalMonths;
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.6 }}
-            className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 mobile-heading "
+            className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 mobile-heading"
           >
             Welcome to <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">insocialwise!</span>
           </motion.h1>
@@ -145,28 +235,18 @@ const totalValue = monthlySavings * totalMonths;
             transition={{ delay: 0.5, duration: 0.6 }}
             className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto"
           >
-            🎉 Congratulations! Your free year of premium access has been secured. You're now part of an exclusive group of entrepreneurs.
+            🎉 Congratulations! Your {plan?.name || 'subscription'} has been activated. You're now part of an exclusive group of entrepreneurs.
           </motion.p>
 
-          {/* Free Year Badge */}
+          {/* Trial Badge - Dynamic */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.6 }}
             className="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 text-lg font-semibold mb-4 custom-font-mobile"
           >
-            {/* <Crown className="w-6 h-6 mr-2" />
-            FREE until {new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })} */}
-             <Crown className="w-6 h-6 mr-2" />
-                FREE until {new Date(Date.now() + ((plan?.freeDays || 30) * 24 * 60 * 60 * 1000)).toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
+            <Crown className="w-6 h-6 mr-2" />
+            FREE until {trialEndDate}
           </motion.div>
         </div>
       </div>
@@ -210,59 +290,37 @@ const totalValue = monthlySavings * totalMonths;
                   ))}
                 </div>
 
-                {/* <div className="mt-8 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Shield className="w-5 h-5 text-indigo-600" />
-                    <span className="font-semibold text-indigo-800">Total Value: $2,400</span>
-                  </div>
-                  <p className="text-indigo-700 text-sm">
-                    You're saving $200/month for 12 months with this exclusive offer.
-                  </p>
-
-                </div> */}
-
-                {/* <div className="mt-8 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Shield className="w-5 h-5 text-indigo-600" />
-                    <span className="font-semibold text-indigo-800">
-                      Total Value: ${totalValue.toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-indigo-700 text-sm">
-                    You're saving ${monthlySavings}/month for {totalMonths} months with this exclusive offer.
-                  </p>
-                </div> */}
-
+                {/* Plan Summary - Dynamic */}
                 <div className="mt-8 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
-  {/* Plan Name and Badge */}
-  <div className="flex items-center justify-between mb-2">
-    <div className="flex items-center space-x-2">
-      <Shield className="w-5 h-5 text-indigo-600" />
-      <span className="font-semibold text-indigo-800 text-lg">{plan?.name}</span>
-    </div>
-    {plan?.badge && (
-      <span className="px-2 py-1 text-xs font-bold rounded-full bg-indigo-100 text-indigo-800">
-        {plan.badge}
-      </span>
-    )}
-  </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <Shield className="w-5 h-5 text-indigo-600" />
+                      <span className="font-semibold text-indigo-800 text-lg">{plan?.name || 'Standard'}</span>
+                    </div>
+                    {plan?.isYearly !== undefined && (
+                      <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100">
+                        {plan.billingCycle}
+                      </Badge>
+                    )}
+                  </div>
 
-  {/* Price Paid */}
-  <p className="text-indigo-700 font-semibold mb-2">
-    You Paid: ${monthlyPrice}{plan?.sub || "/month"}
-  </p>
+                  <div className="space-y-2">
+                    <p className="text-indigo-700 font-semibold">
+                      You Paid: {plan?.price || 'Subscription Activated'}/{plan?.isYearly ? 'year' : 'month'}
+                    </p>
+                    {plan?.trialDays && plan.trialDays > 0 && (
+                      <p className="text-indigo-600 text-sm">
+                        Your {plan.trialDays}-day free trial ends on {trialEndDate}
+                      </p>
+                    )}
+                  </div>
 
-  {/* Total Value / Savings */}
-  <div className="mt-2">
-    <p className="text-indigo-700 text-sm mb-1">
-      Total Value: ${totalValue.toLocaleString()}
-    </p>
-    <p className="text-indigo-700 text-sm">
-      You're saving ${monthlySavings}/month for {totalMonths} months with this exclusive offer.
-    </p>
-  </div>
-</div>
-
+                  <div className="mt-3 pt-3 border-t border-indigo-200">
+                    <p className="text-indigo-700 text-sm">
+                      Thank you for subscribing! Your account has been activated with all the features listed above.
+                    </p>
+                  </div>
+                </div>
 
               </CardContent>
             </Card>
