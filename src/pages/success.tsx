@@ -16,44 +16,27 @@ import {
   Download
 } from "lucide-react";
 import { Link } from "wouter";
+import { paymentApi } from "@/lib/api-service";
 
-interface PlanFromAPI {
-  id: number;
-  name: string;
-  stripe_price_id: string | null;
-  stripe_yearly_price_id: string | null;
-  price: string;
-  monthly_price_usd: string;
-  yearly_price_usd: string | null;
-  monthly_price_inr: string | null;
-  yearly_price_inr: string | null;
-  yearly_price: string | null;
-  currency: string;
-  billing_cycle: string;
-  features: string[] | string | null;
-  display_features: string[] | string | null;
-  trial_period_days: number | null;
-  is_featured: boolean;
-}
-
-interface DisplayPlan {
-  id: string;
-  name: string;
-  price: string;
-  priceAmount: number;
+// SECURITY: Subscription data is now fetched from verified backend endpoint
+interface VerifiedSubscription {
+  planName: string;
+  planPrice: string;
   features: string[];
-  currency: string;
   trialDays: number;
-  isYearly: boolean;
+  trialEnd: Date | null;
+  isTrialing: boolean;
   billingCycle: string;
+  currency: string;
+  userName: string;
 }
 
 export default function Success() {
-  const [plan, setPlan] = useState<DisplayPlan | null>(null);
-  const [loadingPlan, setLoadingPlan] = useState(true);
+  const [subscription, setSubscription] = useState<VerifiedSubscription | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const queryParams = new URLSearchParams(window.location.search);
-  const selectedPriceId = queryParams.get("priceId");
-  const urlTrialDays = queryParams.get("trialDays");
+  const token = queryParams.get("token");
   const APPURL = import.meta.env.VITE_APP_URL;
 
   const nextSteps = [
@@ -83,89 +66,57 @@ export default function Success() {
     }
   ];
 
+  // SECURITY: Fetch verified subscription data from backend using secure token
   useEffect(() => {
-    async function fetchPlanData() {
-      if (!selectedPriceId) {
-        setLoadingPlan(false);
+    async function fetchVerifiedSubscription() {
+      if (!token) {
+        setError("No subscription token provided");
+        setLoading(false);
         return;
       }
 
       try {
-        const response = await fetch('/api/plans/public');
-        const data = await response.json();
+        const response = await paymentApi.verifySubscription(token);
         
-        if (data.success && data.data && data.data.length > 0) {
-          const foundPlan = data.data.find((p: PlanFromAPI) => 
-            p.stripe_price_id === selectedPriceId || p.stripe_yearly_price_id === selectedPriceId
-          );
+        // API service returns data directly (not wrapped) when backend includes 'success' field
+        if (response.success) {
+          // Access data directly from response, not from response.data
+          const responseData = response as unknown as { success: boolean; plan?: any; subscription?: any; user?: any };
+          const plan = responseData.plan;
+          const sub = responseData.subscription;
+          const user = responseData.user;
+
+          // Get currency symbol
+          const currencySymbol = sub?.currency === 'INR' ? '₹' : '$';
           
-          if (foundPlan) {
-            const isYearlyPrice = foundPlan.stripe_yearly_price_id === selectedPriceId;
-            
-            let parsedFeatures: string[] = [];
-            if (foundPlan.display_features) {
-              if (typeof foundPlan.display_features === 'string') {
-                try {
-                  parsedFeatures = JSON.parse(foundPlan.display_features);
-                } catch (e) {
-                  parsedFeatures = [];
-                }
-              } else if (Array.isArray(foundPlan.display_features)) {
-                parsedFeatures = foundPlan.display_features;
-              }
-            }
-            
-            if (parsedFeatures.length === 0 && foundPlan.features) {
-              if (typeof foundPlan.features === 'string') {
-                try {
-                  parsedFeatures = JSON.parse(foundPlan.features);
-                } catch (e) {
-                  parsedFeatures = [];
-                }
-              } else if (Array.isArray(foundPlan.features)) {
-                parsedFeatures = foundPlan.features;
-              }
-            }
+          // Calculate price display
+          const amount = sub?.amount ? (sub.amount / 100) : 0;
+          const priceDisplay = `${currencySymbol}${Math.round(amount).toLocaleString()}`;
 
-            const isINR = foundPlan.currency === 'INR';
-            const currencySymbol = isINR ? '₹' : '$';
-            
-            const monthlyPrice = isINR
-              ? (foundPlan.monthly_price_inr ? parseFloat(foundPlan.monthly_price_inr) : parseFloat(foundPlan.price))
-              : (foundPlan.monthly_price_usd ? parseFloat(foundPlan.monthly_price_usd) : parseFloat(foundPlan.price));
-            
-            const yearlyPrice = isINR
-              ? (foundPlan.yearly_price_inr ? parseFloat(foundPlan.yearly_price_inr) : monthlyPrice * 12)
-              : (foundPlan.yearly_price_usd ? parseFloat(foundPlan.yearly_price_usd) : foundPlan.yearly_price ? parseFloat(foundPlan.yearly_price) : monthlyPrice * 12);
-            
-            const displayPrice = isYearlyPrice ? yearlyPrice : monthlyPrice;
-
-            const actualTrialDays = urlTrialDays !== null 
-              ? parseInt(urlTrialDays, 10) 
-              : (foundPlan.trial_period_days || 0);
-
-            setPlan({
-              id: foundPlan.stripe_price_id || `plan-${foundPlan.id}`,
-              name: foundPlan.name,
-              price: `${currencySymbol}${Math.round(displayPrice).toLocaleString()}`,
-              priceAmount: Math.round(displayPrice),
-              features: parsedFeatures,
-              currency: foundPlan.currency || 'USD',
-              trialDays: actualTrialDays,
-              isYearly: isYearlyPrice,
-              billingCycle: isYearlyPrice ? 'Yearly' : 'Monthly',
-            });
-          }
+          setSubscription({
+            planName: plan?.name || 'Subscription',
+            planPrice: priceDisplay,
+            features: plan?.features || [],
+            trialDays: sub?.trialDays || 0,
+            trialEnd: sub?.trialEnd ? new Date(sub.trialEnd) : null,
+            isTrialing: sub?.isTrialing || false,
+            billingCycle: sub?.billingInterval === 'year' ? 'Yearly' : 'Monthly',
+            currency: sub?.currency || 'USD',
+            userName: user?.firstName || 'there'
+          });
+        } else {
+          setError(response.error || "Failed to verify subscription");
         }
       } catch (err) {
-        console.error('Error fetching plan:', err);
+        console.error('Error verifying subscription:', err);
+        setError("Failed to load subscription details");
       } finally {
-        setLoadingPlan(false);
+        setLoading(false);
       }
     }
 
-    fetchPlanData();
-  }, [selectedPriceId]);
+    fetchVerifiedSubscription();
+  }, [token]);
 
   const defaultFeatures = [
     "All social media platforms connected",
@@ -176,17 +127,23 @@ export default function Success() {
     "Advanced scheduling features unlocked"
   ];
 
-  const features = plan?.features && plan.features.length > 0 ? plan.features : defaultFeatures;
+  // SECURITY: Use verified data from backend, not URL params
+  const features = subscription?.features && subscription.features.length > 0 ? subscription.features : defaultFeatures;
   
-  const effectiveTrialDays = plan?.trialDays ?? (urlTrialDays !== null ? parseInt(urlTrialDays, 10) : 0);
-  const trialEndDate = new Date(Date.now() + (effectiveTrialDays * 24 * 60 * 60 * 1000)).toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  const effectiveTrialDays = subscription?.trialDays || 0;
+  const trialEndDate = subscription?.trialEnd 
+    ? new Date(subscription.trialEnd).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })
+    : new Date(Date.now() + (effectiveTrialDays * 24 * 60 * 60 * 1000)).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
 
   function handleRedirect() {
-    const token = queryParams.get("token");
     if (APPURL && token) {
       window.open(`${APPURL}/onboarding?token=${token}`, '_blank');
     } else if (APPURL) {
@@ -196,12 +153,31 @@ export default function Success() {
     }
   }
 
-  if (loadingPlan) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-xl text-gray-600">Loading your subscription details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50">
+        <div className="text-center max-w-md p-8">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Unable to Verify Subscription</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <Link href="/">
+            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              Return to Homepage
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -241,7 +217,7 @@ export default function Success() {
             transition={{ delay: 0.5, duration: 0.6 }}
             className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto"
           >
-            🎉 Congratulations! Your {plan?.name || 'subscription'} has been activated. You're now part of an exclusive group of entrepreneurs.
+            🎉 Congratulations! Your {subscription?.planName || 'subscription'} has been activated. You're now part of an exclusive group of entrepreneurs.
           </motion.p>
 
           {/* Trial Badge - Dynamic - Only show if trial exists */}
@@ -298,16 +274,16 @@ export default function Success() {
                   ))}
                 </div>
 
-                {/* Plan Summary - Dynamic */}
+                {/* Plan Summary - Dynamic - SECURITY: Uses verified data from backend */}
                 <div className="mt-8 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
                       <Shield className="w-5 h-5 text-indigo-600" />
-                      <span className="font-semibold text-indigo-800 text-lg">{plan?.name || 'Standard'}</span>
+                      <span className="font-semibold text-indigo-800 text-lg">{subscription?.planName || 'Standard'}</span>
                     </div>
-                    {plan?.isYearly !== undefined && (
+                    {subscription?.billingCycle && (
                       <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100">
-                        {plan.billingCycle}
+                        {subscription.billingCycle}
                       </Badge>
                     )}
                   </div>
@@ -315,8 +291,8 @@ export default function Success() {
                   <div className="space-y-2">
                     <p className="text-indigo-700 font-semibold">
                       {effectiveTrialDays > 0 
-                        ? `Trial Active: ${plan?.price || 'Subscription'}/${plan?.isYearly ? 'year' : 'month'} starts after trial`
-                        : `You Paid: ${plan?.price || 'Subscription Activated'}/${plan?.isYearly ? 'year' : 'month'}`
+                        ? `Trial Active: ${subscription?.planPrice || 'Subscription'}/${subscription?.billingCycle === 'Yearly' ? 'year' : 'month'} starts after trial`
+                        : `You Paid: ${subscription?.planPrice || 'Subscription Activated'}/${subscription?.billingCycle === 'Yearly' ? 'year' : 'month'}`
                       }
                     </p>
                     {effectiveTrialDays > 0 && (

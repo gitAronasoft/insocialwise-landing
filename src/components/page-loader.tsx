@@ -170,4 +170,12 @@ export const RouteChangeLoader = () => {
   return null;
 };
 
+export const SuspenseFallback = () => {
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50/50">
+      <BrandedLogoAnimation />
+    </div>
+  );
+};
+
 export default PageLoaderProvider;

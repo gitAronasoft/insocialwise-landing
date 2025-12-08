@@ -4,7 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { PageLoaderProvider } from "@/components/page-loader";
+import { PageLoaderProvider, SuspenseFallback } from "@/components/page-loader";
 
 const Landing = lazy(() => import("@/pages/landing"));
 const Checkout = lazy(() => import("@/pages/checkout"));
@@ -14,7 +14,7 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 
 function Router() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<SuspenseFallback />}>
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/checkout" component={Checkout} />

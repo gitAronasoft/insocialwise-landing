@@ -77,11 +77,13 @@ const StripeCheckoutForm = ({
   onSuccess,
   onError,
   clientSecret,
+  isConfirmingPayment = false,
 }: {
   customerData: CustomerForm;
   onSuccess: (pm: string) => void;
   onError: (error: string) => void;
   clientSecret: string;
+  isConfirmingPayment?: boolean;
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -113,11 +115,13 @@ const StripeCheckoutForm = ({
 
       if (error) {
         onError(error.message || "Subscription payment failed");
+        setIsProcessing(false);
       } else if (setupIntent && setupIntent.status === "succeeded") {
         const pm = setupIntent.payment_method;
         console.log("Payment method:", pm);
         if (!pm) {
           onError("Stripe did not return a payment method. Please try again.");
+          setIsProcessing(false);
           return;
         }
         // pm can be a string (payment method id) or a PaymentMethod object; normalize to an ID string
@@ -125,18 +129,24 @@ const StripeCheckoutForm = ({
           typeof pm === "string" ? pm : (pm.id ?? undefined);
         if (!paymentMethodId) {
           onError("Unable to determine payment method ID. Please try again.");
+          setIsProcessing(false);
           return;
         }
+        // Don't reset isProcessing here - let parent handle it via isConfirmingPayment
         onSuccess(paymentMethodId);
       } else {
         onError("Payment incomplete. Please try again.");
+        setIsProcessing(false);
       }
     } catch (err) {
       onError(err instanceof Error ? err.message : "Payment failed");
-    } finally {
       setIsProcessing(false);
     }
   };
+
+  // Determine button state and text
+  const isLoading = isProcessing || isConfirmingPayment;
+  const loadingText = isConfirmingPayment ? "Activating Subscription..." : "Processing Payment...";
 
   return (
     <div className="space-y-6">
@@ -161,9 +171,9 @@ const StripeCheckoutForm = ({
       <LoadingButton
         type="button"
         onClick={handleCardSubmit}
-        disabled={!stripe}
-        loading={isProcessing}
-        loadingText="Processing Payment..."
+        disabled={!stripe || isLoading}
+        loading={isLoading}
+        loadingText={loadingText}
         className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 text-lg rounded-xl transition-all duration-300 disabled:opacity-50"
         data-testid="button-complete-payment"
       >
@@ -346,6 +356,7 @@ interface CheckoutPlan {
   priceAmount: number;
   sub: string;
   trialDays: number;
+  trialEnabled: boolean;
   features: string[];
   currency: string;
   isYearly: boolean;
@@ -361,15 +372,14 @@ export default function Checkout() {
   );
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [showStripeForm, setShowStripeForm] = useState(false);
   const [showRazorpayForm, setShowRazorpayForm] = useState(false);
   const [stripeCustomerId, setStripeCustomerId] = useState("");
   const [userUUID, setUserUUID] = useState("");
-  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
-  const [setupIntentPaymentMethod, setSetupIntentPaymentMethod] = useState<
-    string | null
-  >(null);
+  const [setupIntentId, setSetupIntentId] = useState<string | null>(null);
+  const [savedPriceId, setSavedPriceId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<CheckoutPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
@@ -412,13 +422,17 @@ export default function Checkout() {
               ? (plan.stripe_yearly_price_id || selectedPriceId) 
               : (plan.stripe_price_id || selectedPriceId || `plan-${plan.id}`);
 
+            // SECURITY: Only show trial if trial_enabled is true in database
+            const effectiveTrialDays = plan.trial_enabled ? (plan.trial_period_days || 0) : 0;
+            
             setSelectedPlan({
               id: planId,
               name: plan.name,
               price: `${currencySymbol}${Math.round(displayPrice).toLocaleString()}`,
               priceAmount: Math.round(displayPrice),
               sub: isYearlyPrice ? '/year' : '/month',
-              trialDays: plan.trial_period_days || 0,
+              trialDays: effectiveTrialDays,
+              trialEnabled: plan.trial_enabled,
               features: transformed.features,
               currency: plan.currency || 'USD',
               isYearly: isYearlyPrice,
@@ -462,17 +476,29 @@ export default function Checkout() {
     setIsProcessing(true);
 
     try {
+      // SECURITY: Don't send trial_end - backend validates and applies trial from database
       const response = await paymentApi.createSubscription({
         customerData: data,
         priceId: selectedPlan.id,
-        trial_end: selectedPlan.trialDays,
       });
 
       if (response.success && response.success === true) {
+        // Check if clientSecret is present before proceeding
+        if (!response.clientSecret) {
+          toast({
+            title: "Payment Setup Failed",
+            description:
+              "Failed to initialize payment session. Please try again or contact support.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         setStripeCustomerId(response.customerId || "");
         setUserUUID(response.user_uuid || "");
-        setClientSecret(response.clientSecret || null);
-        setSubscriptionId(response.subscriptionId || null);
+        setClientSecret(response.clientSecret);
+        setSetupIntentId(response.setupIntentId || null);
+        setSavedPriceId(response.priceId || selectedPlan.id);
         setShowStripeForm(true);
         toast({
           title: "Account Created Successfully",
@@ -510,29 +536,34 @@ export default function Checkout() {
   //   // }, 1500);
   // };
 
-  const handleStripeSuccess = async (_payment_method: string) => {
-    if (!subscriptionId) {
-      handleStripeError("Invalid subscription. Please try again.");
+  const handleStripeSuccess = async (paymentMethodId: string) => {
+    if (!setupIntentId || !savedPriceId || !stripeCustomerId) {
+      handleStripeError("Missing payment information. Please try again.");
       return;
     }
+
+    setIsConfirmingPayment(true);
 
     try {
       const result = await paymentApi.confirmPayment({
         user_uuid: userUUID,
-        subscriptionId: subscriptionId,
+        setupIntentId: setupIntentId,
+        paymentMethodId: paymentMethodId,
+        priceId: savedPriceId,
+        customerId: stripeCustomerId,
       });
 
       if (result.success && result.success === true) {
         toast({
           title: "Payment Successful",
           description:
-            "Your subscription is now active. Setting up your dashboard...",
+            "Your subscription is now active. Redirecting to your dashboard...",
         });
 
-        setTimeout(() => {
-          window.location.href = `/success?priceId=${selectedPlan?.id}&token=${result.user_uuid}&trialDays=${selectedPlan?.trialDays || 0}`;
-        }, 800);
+        // Use SPA navigation instead of page reload for professional experience
+        setLocation(`/success?token=${result.user_uuid}`);
       } else {
+        setIsConfirmingPayment(false);
         toast({
           title: "Activation Failed",
           description:
@@ -542,6 +573,7 @@ export default function Checkout() {
         });
       }
     } catch {
+      setIsConfirmingPayment(false);
       toast({
         title: "Connection Issue",
         description:
@@ -996,7 +1028,7 @@ export default function Checkout() {
             </div>
 
             {/* Benefits List - from API features or fallback to hardcoded */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
                 What's Included:
               </h2>
@@ -1008,7 +1040,7 @@ export default function Checkout() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 + index * 0.1 }}
-                    className="flex items-start space-x-3 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 hover:shadow-md transition-all duration-300"
+                    className="flex items-center space-x-3 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-gray-200/50 hover:shadow-md transition-all duration-300"
                   >
                     <div className="flex-shrink-0 p-1.5 bg-white rounded-lg shadow-sm">
                       <Check className="w-5 h-5 text-green-500" />
@@ -1086,9 +1118,24 @@ export default function Checkout() {
                   className="space-y-4"
                 >
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Your Details
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Your Details
+                      </h3>
+                      {showStripeForm && !isConfirmingPayment && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowStripeForm(false);
+                            setClientSecret(null);
+                          }}
+                          className="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center space-x-1"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span>Edit Details</span>
+                        </button>
+                      )}
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="firstName">First Name</Label>
@@ -1097,6 +1144,7 @@ export default function Checkout() {
                           {...form.register("firstName")}
                           className="mt-1"
                           placeholder="John"
+                          disabled={showStripeForm}
                         />
                         {form.formState.errors.firstName && (
                           <p className="text-red-500 text-sm mt-1">
@@ -1111,6 +1159,7 @@ export default function Checkout() {
                           {...form.register("lastName")}
                           className="mt-1"
                           placeholder="Doe"
+                          disabled={showStripeForm}
                         />
                         {form.formState.errors.lastName && (
                           <p className="text-red-500 text-sm mt-1">
@@ -1129,6 +1178,7 @@ export default function Checkout() {
                           {...form.register("email")}
                           className="mt-1"
                           placeholder="john@example.com"
+                          disabled={showStripeForm}
                         />
                         {form.formState.errors.email && (
                           <p className="text-red-500 text-sm mt-1">
@@ -1145,6 +1195,7 @@ export default function Checkout() {
                           {...form.register("phone")}
                           className="mt-1"
                           placeholder="(555) 123-4567"
+                          disabled={showStripeForm}
                           onChange={(e: ChangeEvent<HTMLInputElement>) => {
                             const formatted = formatPhoneNumber(e.target.value);
                             form.setValue("phone", formatted);
@@ -1167,12 +1218,14 @@ export default function Checkout() {
                             {...form.register("password")}
                             className="mt-1"
                             placeholder="Your secure password"
+                            disabled={showStripeForm}
                           />
                           {/* Eye Toggle Icon */}
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            disabled={showStripeForm}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
                           >
                             {showPassword ? (
                               <svg
@@ -1233,14 +1286,15 @@ export default function Checkout() {
                     <div className="grid grid-cols-1 gap-4">
                       <motion.button
                         type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedPayment("stripe")}
+                        whileHover={!showStripeForm ? { scale: 1.02 } : {}}
+                        whileTap={!showStripeForm ? { scale: 0.98 } : {}}
+                        onClick={() => !showStripeForm && setSelectedPayment("stripe")}
+                        disabled={showStripeForm}
                         className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                           selectedPayment === "stripe"
                             ? "border-indigo-500 bg-indigo-50"
                             : "border-gray-200 hover:border-gray-300"
-                        }`}
+                        } ${showStripeForm ? "opacity-60 cursor-not-allowed" : ""}`}
                       >
                         <div className="flex items-center justify-center space-x-2">
                           <CreditCard className="w-5 h-5" />
@@ -1290,6 +1344,7 @@ export default function Checkout() {
                             onSuccess={handleStripeSuccess}
                             onError={handleStripeError}
                             clientSecret={clientSecret}
+                            isConfirmingPayment={isConfirmingPayment}
                           />
                         </Elements>
                       </div>

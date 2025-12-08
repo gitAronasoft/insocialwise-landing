@@ -302,7 +302,10 @@ export interface CreateSubscriptionResponse {
   clientSecret?: string;
   customerId?: string;
   user_uuid?: string;
-  subscriptionId?: string;
+  setupIntentId?: string;
+  priceId?: string;
+  planName?: string;
+  trialDays?: number;
   error?: string;
 }
 
@@ -310,6 +313,37 @@ export interface ConfirmPaymentResponse {
   success: boolean;
   user_uuid?: string;
   subscriptionId?: number;
+  error?: string;
+}
+
+export interface VerifySubscriptionResponse {
+  success: boolean;
+  subscription?: {
+    id: number;
+    status: string;
+    isTrialing: boolean;
+    trialDays: number;
+    trialEnd: string | null;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    billingInterval: string;
+    amount: number;
+    currency: string;
+  };
+  plan?: {
+    id: number;
+    name: string;
+    price: string;
+    yearlyPrice: string | null;
+    features: string[];
+    trialEnabled: boolean;
+    trialPeriodDays: number | null;
+  };
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   error?: string;
 }
 
@@ -329,15 +363,21 @@ export const paymentApi = {
   createSubscription: (data: {
     customerData: CustomerData;
     priceId: string;
-    trial_end?: number;
   }): Promise<CreateSubscriptionApiResponse> => 
     apiService.post<CreateSubscriptionResponse>('/api/payment/create-subscription', data) as Promise<CreateSubscriptionApiResponse>,
 
   confirmPayment: (data: {
     user_uuid: string;
-    subscriptionId: string;
+    setupIntentId: string;
+    paymentMethodId: string;
+    priceId: string;
+    customerId: string;
   }): Promise<ConfirmPaymentApiResponse> => 
     apiService.post<ConfirmPaymentResponse>('/api/payment/confirm', data) as Promise<ConfirmPaymentApiResponse>,
+
+  // SECURITY: Verify subscription from backend - returns accurate data
+  verifySubscription: (token: string): Promise<ApiResponse<VerifySubscriptionResponse>> =>
+    apiService.get<VerifySubscriptionResponse>(`/api/payment/subscription/verify/${token}`),
 };
 
 export function transformPlanFromAPI(plan: PlanFromAPI): DisplayPlan {
