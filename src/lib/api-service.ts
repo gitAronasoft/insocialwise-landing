@@ -247,12 +247,12 @@ export interface PlanFromAPI {
   max_social_accounts: number | null;
   max_team_members: number | null;
   max_scheduled_posts: number | null;
-  is_featured: boolean;
+  is_featured: boolean | number;
   trial_period_days: number | null;
-  trial_enabled: boolean;
-  skip_trial_discount_enabled: boolean;
+  trial_enabled: boolean | number;
+  skip_trial_discount_enabled: boolean | number;
   skip_trial_discount_percent: number;
-  is_contact_only: boolean;
+  is_contact_only: boolean | number;
   sort_order: number;
 }
 
@@ -429,6 +429,13 @@ export function transformPlanFromAPI(plan: PlanFromAPI): DisplayPlan {
     inheritText = 'Everything in Growth, PLUS:';
   }
 
+  // Convert SMALLINT (0/1) to boolean for database fields
+  const toBoolean = (value: boolean | number | undefined): boolean => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    return false;
+  };
+
   return {
     id: plan.stripe_price_id || `plan-${plan.id}`,
     name: plan.name,
@@ -437,15 +444,15 @@ export function transformPlanFromAPI(plan: PlanFromAPI): DisplayPlan {
     yearlyPrice,
     currency: plan.currency || 'USD',
     yearlyDiscount: plan.yearly_discount_percent || 0,
-    highlight: plan.is_featured,
-    badge: plan.is_featured ? 'Most popular' : '',
+    highlight: toBoolean(plan.is_featured),
+    badge: toBoolean(plan.is_featured) ? 'Most popular' : '',
     features,
     description: plan.description,
     trialDays: plan.trial_period_days,
-    trialEnabled: plan.trial_enabled,
-    skipTrialDiscountEnabled: plan.skip_trial_discount_enabled || false,
+    trialEnabled: toBoolean(plan.trial_enabled),
+    skipTrialDiscountEnabled: toBoolean(plan.skip_trial_discount_enabled),
     skipTrialDiscountPercent: plan.skip_trial_discount_percent || 0,
-    isContactOnly: plan.is_contact_only,
+    isContactOnly: toBoolean(plan.is_contact_only),
     stripePriceId: plan.stripe_price_id,
     stripeYearlyPriceId: plan.stripe_yearly_price_id,
     inheritText,

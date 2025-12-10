@@ -6,50 +6,53 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Plus } from "lucide-react";
 import { Link } from "wouter";
 import { PricingSectionSkeleton } from "@/components/ui/skeleton";
-import { 
-  plansApi, 
-  transformPlanFromAPI, 
-  type DisplayPlan, 
-  type PlanFromAPI 
+import {
+  plansApi,
+  transformPlanFromAPI,
+  type DisplayPlan,
+  type PlanFromAPI,
 } from "@/lib/api-service";
 
 function formatPrice(price: number, currency: string): string {
   if (price === 0) return "Custom";
-  
-  const formatter = new Intl.NumberFormat('en-US', {
-    style: 'currency',
+
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
     currency: currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
-  
+
   return formatter.format(price);
 }
 
-type LoadingState = 'loading' | 'success' | 'error' | 'empty';
+type LoadingState = "loading" | "success" | "error" | "empty";
 
 export default function PricingSection() {
   const [plans, setPlans] = useState<DisplayPlan[]>([]);
-  const [loadingState, setLoadingState] = useState<LoadingState>('loading');
+  const [loadingState, setLoadingState] = useState<LoadingState>("loading");
   const [isYearly, setIsYearly] = useState(false);
 
   const fetchPlans = useCallback(async () => {
-    setLoadingState('loading');
-    
+    setLoadingState("loading");
+
     try {
       const response = await plansApi.getPublicPlans();
-      
+
       if (response.success && response.data && response.data.length > 0) {
         const transformedPlans = response.data.map(transformPlanFromAPI);
         setPlans(transformedPlans);
-        setLoadingState('success');
-      } else if (response.success && (!response.data || response.data.length === 0)) {
-        setLoadingState('empty');
+        setLoadingState("success");
+      } else if (
+        response.success &&
+        (!response.data || response.data.length === 0)
+      ) {
+        setLoadingState("empty");
       } else {
-        setLoadingState('error');
+        setLoadingState("error");
       }
     } catch {
-      setLoadingState('error');
+      setLoadingState("error");
     }
   }, []);
 
@@ -57,15 +60,16 @@ export default function PricingSection() {
     fetchPlans();
   }, [fetchPlans]);
 
-  if (loadingState === 'error' || loadingState === 'empty') {
+  if (loadingState === "error" || loadingState === "empty") {
     return null;
   }
 
-  const gridCols = plans.length <= 2 
-    ? "md:grid-cols-2" 
-    : plans.length === 3 
-      ? "lg:grid-cols-3" 
-      : "md:grid-cols-2 lg:grid-cols-4";
+  const gridCols =
+    plans.length <= 2
+      ? "md:grid-cols-2"
+      : plans.length === 3
+        ? "lg:grid-cols-3"
+        : "md:grid-cols-2 lg:grid-cols-4";
 
   const maxYearlySavings = plans.reduce((maxSavings, plan) => {
     if (plan.monthlyPrice > 0 && plan.yearlyPrice > 0) {
@@ -88,7 +92,12 @@ export default function PricingSection() {
       />
       <motion.div
         animate={{ y: [0, 25, 0], rotate: [0, -8, 0], scale: [1, 0.8, 1] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 3,
+        }}
         className="absolute bottom-32 left-20 w-40 h-40 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl opacity-15 blur-xl"
       />
 
@@ -129,8 +138,8 @@ export default function PricingSection() {
             <button
               onClick={() => setIsYearly(false)}
               className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                !isYearly 
-                  ? "bg-white text-gray-900 shadow-md" 
+                !isYearly
+                  ? "bg-white text-gray-900 shadow-md"
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
@@ -139,8 +148,8 @@ export default function PricingSection() {
             <button
               onClick={() => setIsYearly(true)}
               className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
-                isYearly 
-                  ? "bg-white text-gray-900 shadow-md" 
+                isYearly
+                  ? "bg-white text-gray-900 shadow-md"
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
@@ -154,29 +163,29 @@ export default function PricingSection() {
           </motion.div>
         </motion.div>
 
-        {loadingState === 'loading' ? (
+        {loadingState === "loading" ? (
           <PricingSectionSkeleton />
         ) : (
           <div className={`grid ${gridCols} gap-6 max-w-6xl mx-auto`}>
             {plans.map((plan, idx) => {
-              const displayPrice = isYearly 
-                ? plan.yearlyPrice / 12 
+              const displayPrice = isYearly
+                ? plan.yearlyPrice / 12
                 : plan.monthlyPrice;
-              
-              const priceId = isYearly 
-                ? plan.stripeYearlyPriceId 
+
+              const priceId = isYearly
+                ? plan.stripeYearlyPriceId
                 : plan.stripePriceId;
-              
-              const buttonLink = plan.isContactOnly 
-                ? "/contact" 
-                : priceId 
-                  ? `/checkout?priceId=${priceId}` 
+
+              const buttonLink = plan.isContactOnly
+                ? "/contact"
+                : priceId
+                  ? `/checkout?priceId=${priceId}`
                   : "/contact";
 
-              const buttonText = plan.isContactOnly 
-                ? "Request a Demo" 
-                : plan.trialEnabled && plan.trialDays 
-                  ? `Free ${plan.trialDays}-day trial` 
+              const buttonText = plan.isContactOnly
+                ? "Request a Demo"
+                : plan.trialEnabled && plan.trialDays
+                  ? `Free ${plan.trialDays}-day trial`
                   : `Get ${plan.name}`;
 
               return (
@@ -195,7 +204,7 @@ export default function PricingSection() {
                       </Badge>
                     </div>
                   )}
-                  
+
                   <Card
                     className={`relative overflow-hidden rounded-2xl h-full ${
                       plan.highlight
@@ -207,27 +216,31 @@ export default function PricingSection() {
                       <h3 className="text-xl font-bold text-gray-900 mb-4">
                         {plan.name}
                       </h3>
-                      
+
                       <div className="flex items-baseline mb-2">
                         {plan.isContactOnly ? (
-                          <span className="text-3xl font-bold text-gray-900">Custom</span>
+                          <span className="text-3xl font-bold text-gray-900">
+                            Custom
+                          </span>
                         ) : (
                           <>
                             <span className="text-3xl font-bold text-gray-900">
                               {formatPrice(displayPrice, plan.currency)}
                             </span>
-                            <span className="text-gray-500 ml-1">per user/mo*</span>
+                            <span className="text-gray-500 ml-1">
+                              per user/mo*
+                            </span>
                           </>
                         )}
                       </div>
-                      
+
                       {!plan.isContactOnly && (
                         <Link href={buttonLink}>
                           <Button
                             size="lg"
                             className={`w-full font-semibold py-3 rounded-lg mt-4 ${
                               plan.highlight || plan.trialEnabled
-                                ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white" 
+                                ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
                                 : "bg-gray-900 hover:bg-gray-800 text-white"
                             }`}
                           >
@@ -235,7 +248,7 @@ export default function PricingSection() {
                           </Button>
                         </Link>
                       )}
-                      
+
                       {plan.isContactOnly && (
                         <Link href={buttonLink}>
                           <Button
@@ -247,27 +260,37 @@ export default function PricingSection() {
                           </Button>
                         </Link>
                       )}
-                      
-                      {plan.trialEnabled && plan.trialDays && !plan.isContactOnly && plan.skipTrialDiscountEnabled && (
-                        <button className="w-full text-center text-sm text-indigo-600 font-medium mt-2 hover:underline">
-                          Skip trial, get {plan.skipTrialDiscountPercent}% off*
-                        </button>
-                      )}
+
+                      {plan.trialEnabled &&
+                        plan.trialDays &&
+                        !plan.isContactOnly &&
+                        plan.skipTrialDiscountEnabled && (
+                          <button className="w-full text-center text-sm text-indigo-600 font-medium mt-2 hover:underline">
+                            Skip trial, get {plan.skipTrialDiscountPercent}%
+                            off*
+                          </button>
+                        )}
                     </CardHeader>
 
                     <CardContent className="px-6 py-6">
                       {plan.inheritText && (
-                        <p className="text-gray-700 font-semibold mb-4">{plan.inheritText}</p>
+                        <p className="text-gray-700 font-semibold mb-4">
+                          {plan.inheritText}
+                        </p>
                       )}
-                      
+
                       {!plan.inheritText && !plan.isContactOnly && (
-                        <p className="text-gray-700 font-semibold mb-4">Features included:</p>
+                        <p className="text-gray-700 font-semibold mb-4">
+                          Features included:
+                        </p>
                       )}
-                      
+
                       {plan.isContactOnly && !plan.inheritText && (
-                        <p className="text-gray-700 font-semibold mb-4">Everything in Growth, PLUS:</p>
+                        <p className="text-gray-700 font-semibold mb-4">
+                          Everything in Growth, PLUS:
+                        </p>
                       )}
-                      
+
                       <ul className="space-y-3">
                         {plan.features.map((feature, i) => (
                           <li
@@ -283,22 +306,30 @@ export default function PricingSection() {
                           </li>
                         ))}
                       </ul>
-                      
+
                       {plan.isContactOnly && (
                         <>
-                          <p className="text-gray-700 font-semibold mt-6 mb-4">Maximize performance with:</p>
+                          <p className="text-gray-700 font-semibold mt-6 mb-4">
+                            Maximize performance with:
+                          </p>
                           <ul className="space-y-3">
                             <li className="flex items-start text-gray-700">
                               <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
-                              <span className="text-sm">Employee Advocacy (Amplify)</span>
+                              <span className="text-sm">
+                                Employee Advocacy (Amplify)
+                              </span>
                             </li>
                             <li className="flex items-start text-gray-700">
                               <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
-                              <span className="text-sm">Listening powered by Talkwalker</span>
+                              <span className="text-sm">
+                                Listening powered by Talkwalker
+                              </span>
                             </li>
                             <li className="flex items-start text-gray-700">
                               <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
-                              <span className="text-sm">Advanced Analytics</span>
+                              <span className="text-sm">
+                                Advanced Analytics
+                              </span>
                             </li>
                             <li className="flex items-start text-gray-700">
                               <Plus className="w-5 h-5 mr-3 flex-shrink-0 text-indigo-600 mt-0.5" />
@@ -315,7 +346,7 @@ export default function PricingSection() {
           </div>
         )}
 
-        {loadingState === 'success' && plans.length > 0 && (
+        {loadingState === "success" && plans.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -332,21 +363,27 @@ export default function PricingSection() {
             >
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-gray-700 font-medium text-sm sm:text-base">14-day free trial</span>
+                <span className="text-gray-700 font-medium text-sm sm:text-base">
+                  14-day free trial
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div
                   className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"
                   style={{ animationDelay: "0.5s" }}
                 ></div>
-                <span className="text-gray-700 font-medium text-sm sm:text-base">Cancel anytime</span>
+                <span className="text-gray-700 font-medium text-sm sm:text-base">
+                  Cancel anytime
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div
                   className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"
                   style={{ animationDelay: "1s" }}
                 ></div>
-                <span className="text-gray-700 font-medium text-sm sm:text-base">Instant access</span>
+                <span className="text-gray-700 font-medium text-sm sm:text-base">
+                  Instant access
+                </span>
               </div>
             </motion.div>
 
@@ -363,15 +400,19 @@ export default function PricingSection() {
                 className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg"
               >
                 <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                <span className="text-indigo-600 font-semibold text-sm">Stripe</span>
+                <span className="text-indigo-600 font-semibold text-sm">
+                  Stripe
+                </span>
               </motion.div>
-              
+
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg"
               >
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-green-600 font-semibold text-sm">256-bit SSL</span>
+                <span className="text-green-600 font-semibold text-sm">
+                  256-bit SSL
+                </span>
               </motion.div>
             </motion.div>
           </motion.div>

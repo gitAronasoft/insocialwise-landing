@@ -422,8 +422,9 @@ export default function Checkout() {
               ? (plan.stripe_yearly_price_id || selectedPriceId) 
               : (plan.stripe_price_id || selectedPriceId || `plan-${plan.id}`);
 
-            // SECURITY: Only show trial if trial_enabled is true in database
-            const effectiveTrialDays = plan.trial_enabled ? (plan.trial_period_days || 0) : 0;
+            // SECURITY: Only show trial if trial_enabled is true in database (convert SMALLINT to boolean)
+            const trialEnabledBool = typeof plan.trial_enabled === 'number' ? plan.trial_enabled !== 0 : plan.trial_enabled;
+            const effectiveTrialDays = trialEnabledBool ? (plan.trial_period_days || 0) : 0;
             
             setSelectedPlan({
               id: planId,
@@ -432,7 +433,7 @@ export default function Checkout() {
               priceAmount: Math.round(displayPrice),
               sub: isYearlyPrice ? '/year' : '/month',
               trialDays: effectiveTrialDays,
-              trialEnabled: plan.trial_enabled,
+              trialEnabled: trialEnabledBool,
               features: transformed.features,
               currency: plan.currency || 'USD',
               isYearly: isYearlyPrice,
